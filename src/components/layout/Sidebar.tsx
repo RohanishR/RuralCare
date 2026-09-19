@@ -1,10 +1,15 @@
 import React from 'react';
 import Link from 'next/link';
 import { LayoutDashboard, Users, Calendar, FileText, Settings, LogOut } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 export const Sidebar: React.FC = () => {
+  const { logout, user } = useAuth();
+  
+  const role = user?.role || 'patient';
+  
   const menuItems = [
-    { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
+    { icon: LayoutDashboard, label: 'Dashboard', href: `/${role}/dashboard` },
     { icon: Users, label: 'Find Doctor', href: '/find-doctor' },
     { icon: Calendar, label: 'Appointments', href: '/appointments' },
     { icon: FileText, label: 'Records', href: '/records' },
@@ -29,7 +34,10 @@ export const Sidebar: React.FC = () => {
         ))}
       </div>
       <div className="p-4 border-t border-outline-variant">
-        <button className="flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-xl transition-colors font-medium w-full text-left">
+        <button 
+          onClick={logout}
+          className="flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-xl transition-colors font-medium w-full text-left"
+        >
           <LogOut className="w-5 h-5" />
           Logout
         </button>
@@ -37,3 +45,4 @@ export const Sidebar: React.FC = () => {
     </aside>
   );
 };
+

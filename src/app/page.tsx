@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 export default function Page() {
   return (
     <>
@@ -51,13 +53,13 @@ export default function Page() {
 <span className="material-symbols-outlined text-on-surface-variant absolute right-1.5 pointer-events-none text-[18px]">expand_more</span>
 </div>
 {/*  Login Button  */}
-<a className="hidden sm:inline-flex items-center justify-center min-h-[44px] px-4 py-2 text-primary hover:bg-surface-container font-label-lg text-label-lg rounded-lg transition-colors duration-150" href="#login">
+<Link className="hidden sm:inline-flex items-center justify-center min-h-[44px] px-4 py-2 text-primary hover:bg-surface-container font-label-lg text-label-lg rounded-lg transition-colors duration-150" href="/login">
           Login
-        </a>
+        </Link>
 {/*  Primary CTA: Get Started  */}
-<a className="inline-flex items-center justify-center min-h-[44px] px-5 py-2.5 bg-primary text-on-primary hover:bg-primary-container font-label-lg text-label-lg rounded-lg shadow-sm transition-all duration-200 ease-in-out" href="#find-doctor">
+<Link className="inline-flex items-center justify-center min-h-[44px] px-5 py-2.5 bg-primary text-on-primary hover:bg-primary-container font-label-lg text-label-lg rounded-lg shadow-sm transition-all duration-200 ease-in-out" href="/register">
           Get Started
-        </a>
+        </Link>
 {/*  Mobile Menu Trigger  */}
 <button aria-label="Toggle navigation menu" className="md:hidden p-2 text-on-surface hover:bg-surface-container rounded-lg" type="button">
 <span className="material-symbols-outlined text-[26px]">menu</span>
@@ -72,7 +74,8 @@ export default function Page() {
 <a className="block py-2 text-on-surface-variant hover:text-primary font-label-lg text-label-lg" href="#doctors">For Doctors</a>
 <a className="block py-2 text-on-surface-variant hover:text-primary font-label-lg text-label-lg" href="#about">About</a>
 <div className="pt-3 border-t border-outline-variant flex flex-col gap-2">
-<a className="w-full text-center py-2.5 border border-outline-variant text-primary rounded-lg font-label-lg text-label-lg" href="#login">Login</a>
+<Link className="w-full text-center py-2.5 border border-outline-variant text-primary rounded-lg font-label-lg text-label-lg" href="/login">Login</Link>
+<Link className="w-full text-center py-2.5 bg-primary text-on-primary rounded-lg font-label-lg text-label-lg" href="/register">Get Started</Link>
 </div>
 </div>
 </header>

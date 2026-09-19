@@ -1,9 +1,13 @@
 import React from 'react';
 import Link from 'next/link';
-import { Menu, UserCircle, Bell } from 'lucide-react';
+import { Menu, UserCircle, Bell, LogOut } from 'lucide-react';
 import { Avatar } from '../ui/Avatar';
+import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '../ui/Button';
 
 export const Navbar: React.FC = () => {
+  const { isAuthenticated, user, logout } = useAuth();
+
   return (
     <header className="sticky top-0 z-40 w-full bg-surface/95 backdrop-blur supports-[backdrop-filter]:bg-surface/60 border-b border-outline-variant">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
@@ -26,15 +30,32 @@ export const Navbar: React.FC = () => {
         </nav>
 
         <div className="flex items-center gap-4">
-          <button className="text-on-surface-variant hover:text-primary transition-colors relative">
-            <Bell className="w-5 h-5" />
-            <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
-          </button>
-          <Link href="/login">
-            <Avatar size="sm" />
-          </Link>
+          {isAuthenticated ? (
+            <>
+              <button className="text-on-surface-variant hover:text-primary transition-colors relative">
+                <Bell className="w-5 h-5" />
+                <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
+              </button>
+              <Link href={`/${user?.role}/dashboard`}>
+                <Avatar size="sm" src={user?.profile_image} alt={user?.name} />
+              </Link>
+              <button onClick={logout} className="text-on-surface-variant hover:text-red-500 transition-colors ml-2" title="Log out">
+                <LogOut className="w-5 h-5" />
+              </button>
+            </>
+          ) : (
+            <>
+              <Link href="/login">
+                <Button variant="ghost" size="sm">Log In</Button>
+              </Link>
+              <Link href="/register">
+                <Button variant="primary" size="sm">Sign Up</Button>
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </header>
   );
 };
+

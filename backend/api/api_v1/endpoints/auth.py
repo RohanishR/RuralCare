@@ -53,8 +53,9 @@ async def google_auth(login_data: GoogleLogin):
         idinfo = id_token.verify_oauth2_token(
             login_data.credential, requests.Request(), settings.GOOGLE_CLIENT_ID
         )
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid Google Token")
+    except ValueError as e:
+        print(f"Google Auth Error: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Invalid Google Token: {str(e)}")
         
     email = idinfo.get("email")
     name = idinfo.get("name")

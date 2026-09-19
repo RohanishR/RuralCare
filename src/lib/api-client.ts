@@ -1,15 +1,19 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+import Cookies from "js-cookie";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
 
 class ApiClient {
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    const headers = {
-      'Content-Type': 'application/json',
-      ...options.headers,
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      ...(options.headers as Record<string, string>),
     };
 
-    // Add authorization token if available (to be implemented)
-    // const token = localStorage.getItem('token');
-    // if (token) headers['Authorization'] = `Bearer ${token}`;
+    // Attach Bearer token from cookies if available
+    const token = typeof window !== "undefined" ? Cookies.get("access_token") : null;
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
 
     const config: RequestInit = {
       ...options,
@@ -26,34 +30,36 @@ class ApiClient {
       
       return response.json();
     } catch (error) {
-      console.error('API Client Error:', error);
+      console.error("API Client Error:", error);
       throw error;
     }
   }
 
-  async get<T>(endpoint: string, options?: RequestInit) {
-    return this.request<T>(endpoint, { ...options, method: 'GET' });
+  async get<T>(endpoint: string, options?: RequestInit): Promise<T> {
+    return this.request<T>(endpoint, { ...options, method: "GET" });
   }
 
-  async post<T>(endpoint: string, data: any, options?: RequestInit) {
+  async post<T>(endpoint: string, data?: any, options?: RequestInit): Promise<T> {
     return this.request<T>(endpoint, {
       ...options,
-      method: 'POST',
-      body: JSON.stringify(data),
+      method: "POST",
+      body: data ? JSON.stringify(data) : undefined,
     });
   }
 
-  async put<T>(endpoint: string, data: any, options?: RequestInit) {
+  async put<T>(endpoint: string, data?: any, options?: RequestInit): Promise<T> {
     return this.request<T>(endpoint, {
       ...options,
-      method: 'PUT',
-      body: JSON.stringify(data),
+      method: "PUT",
+      body: data ? JSON.stringify(data) : undefined,
     });
   }
 
-  async delete<T>(endpoint: string, options?: RequestInit) {
-    return this.request<T>(endpoint, { ...options, method: 'DELETE' });
+  async delete<T>(endpoint: string, options?: RequestInit): Promise<T> {
+    return this.request<T>(endpoint, { ...options, method: "DELETE" });
   }
 }
 
 export const api = new ApiClient();
+export const apiClient = api;
+export default api;
