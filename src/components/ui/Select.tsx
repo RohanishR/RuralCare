@@ -1,5 +1,5 @@
-import React, { SelectHTMLAttributes } from 'react';
-import { ChevronDown } from 'lucide-react';
+import React, { SelectHTMLAttributes } from "react";
+import { ChevronDown } from "lucide-react";
 
 interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   label?: string;
@@ -9,16 +9,19 @@ interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
 }
 
 export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
-  ({ label, error, fullWidth = true, options, className = '', ...props }, ref) => {
-    const width = fullWidth ? 'w-full' : '';
-    const errorStyles = error ? 'border-red-500 focus:ring-red-500' : 'border-outline focus:ring-primary';
+  (
+    { label, error, fullWidth = true, options, className = "", ...props },
+    ref,
+  ) => {
+    const width = fullWidth ? "w-full" : "";
+    const errorStyles = error
+      ? "border-red-500 focus:ring-red-500"
+      : "border-outline focus:ring-primary";
 
     return (
       <div className={`${width} flex flex-col gap-1.5`}>
         {label && (
-          <label className="text-sm font-medium text-on-surface">
-            {label}
-          </label>
+          <label className="text-sm font-medium text-on-surface">{label}</label>
         )}
         <div className="relative">
           <select
@@ -39,7 +42,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
         {error && <span className="text-xs text-red-500">{error}</span>}
       </div>
     );
-  }
+  },
 );
 
-Select.displayName = 'Select';
+Select.displayName = "Select";

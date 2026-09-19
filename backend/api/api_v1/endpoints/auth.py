@@ -38,7 +38,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     if not verify_password(form_data.password, user["password_hash"]):
         raise HTTPException(status_code=400, detail="Incorrect email or password")
         
-    access_token = create_access_token(subject=str(user["_id"]))
+    access_token = create_access_token(subject=str(user["_id"]), role=user.get("role", "patient"))
     user["id"] = str(user["_id"])
     
     return {
@@ -80,7 +80,7 @@ async def google_auth(login_data: GoogleLogin):
         # Just ensure they are allowed to login
         pass
         
-    access_token = create_access_token(subject=str(user["_id"]))
+    access_token = create_access_token(subject=str(user["_id"]), role=user.get("role", "patient"))
     user["id"] = str(user["_id"])
     
     return {

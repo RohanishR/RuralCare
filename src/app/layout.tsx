@@ -16,7 +16,8 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 
 export const metadata: Metadata = {
   title: "RuralCare — Quality healthcare, wherever you are",
-  description: "AI-Assisted Telemedicine Platform for Rural Healthcare Accessibility",
+  description:
+    "AI-Assisted Telemedicine Platform for Rural Healthcare Accessibility",
 };
 
 export default function RootLayout({
@@ -36,9 +37,7 @@ export default function RootLayout({
         className={`${inter.variable} ${plusJakartaSans.variable} antialiased bg-background text-on-surface`}
       >
         <GoogleProvider>
-          <AuthProvider>
-            {children}
-          </AuthProvider>
+          <AuthProvider>{children}</AuthProvider>
         </GoogleProvider>
       </body>
     </html>

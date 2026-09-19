@@ -1,6 +1,6 @@
-import React from 'react';
-import { Inbox } from 'lucide-react';
-import { Button } from './Button';
+import React from "react";
+import { Inbox } from "lucide-react";
+import { Button } from "./Button";
 
 interface EmptyStateProps {
   title?: string;
@@ -11,11 +11,11 @@ interface EmptyStateProps {
 }
 
 export const EmptyState: React.FC<EmptyStateProps> = ({
-  title = 'No Data Found',
-  description = 'There is currently no data to display here.',
+  title = "No Data Found",
+  description = "There is currently no data to display here.",
   actionLabel,
   onAction,
-  icon
+  icon,
 }) => {
   return (
     <div className="w-full flex flex-col items-center justify-center p-12 text-center bg-surface-container-lowest border border-dashed border-outline-variant rounded-2xl">

@@ -1,4 +1,4 @@
-import React, { InputHTMLAttributes } from 'react';
+import React, { InputHTMLAttributes } from "react";
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -7,16 +7,16 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 }
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ label, error, fullWidth = true, className = '', ...props }, ref) => {
-    const width = fullWidth ? 'w-full' : '';
-    const errorStyles = error ? 'border-red-500 focus:ring-red-500' : 'border-outline focus:ring-primary';
+  ({ label, error, fullWidth = true, className = "", ...props }, ref) => {
+    const width = fullWidth ? "w-full" : "";
+    const errorStyles = error
+      ? "border-red-500 focus:ring-red-500"
+      : "border-outline focus:ring-primary";
 
     return (
       <div className={`${width} flex flex-col gap-1.5`}>
         {label && (
-          <label className="text-sm font-medium text-on-surface">
-            {label}
-          </label>
+          <label className="text-sm font-medium text-on-surface">{label}</label>
         )}
         <input
           ref={ref}
@@ -26,7 +26,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
         {error && <span className="text-xs text-red-500">{error}</span>}
       </div>
     );
-  }
+  },
 );
 
-Input.displayName = 'Input';
+Input.displayName = "Input";

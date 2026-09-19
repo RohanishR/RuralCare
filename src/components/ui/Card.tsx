@@ -1,4 +1,4 @@
-import React, { HTMLAttributes } from 'react';
+import React, { HTMLAttributes } from "react";
 
 interface CardProps extends HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
@@ -6,9 +6,9 @@ interface CardProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 export const Card = React.forwardRef<HTMLDivElement, CardProps>(
-  ({ children, noPadding = false, className = '', ...props }, ref) => {
-    const padding = noPadding ? '' : 'p-6';
-    
+  ({ children, noPadding = false, className = "", ...props }, ref) => {
+    const padding = noPadding ? "" : "p-6";
+
     return (
       <div
         ref={ref}
@@ -18,7 +18,7 @@ export const Card = React.forwardRef<HTMLDivElement, CardProps>(
         {children}
       </div>
     );
-  }
+  },
 );
 
-Card.displayName = 'Card';
+Card.displayName = "Card";

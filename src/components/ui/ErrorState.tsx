@@ -1,6 +1,6 @@
-import React from 'react';
-import { AlertCircle } from 'lucide-react';
-import { Button } from './Button';
+import React from "react";
+import { AlertCircle } from "lucide-react";
+import { Button } from "./Button";
 
 interface ErrorStateProps {
   title?: string;
@@ -9,9 +9,9 @@ interface ErrorStateProps {
 }
 
 export const ErrorState: React.FC<ErrorStateProps> = ({
-  title = 'Something went wrong',
-  message = 'We encountered an error while processing your request.',
-  onRetry
+  title = "Something went wrong",
+  message = "We encountered an error while processing your request.",
+  onRetry,
 }) => {
   return (
     <div className="w-full flex flex-col items-center justify-center p-8 text-center bg-red-50/50 rounded-2xl border border-red-100">

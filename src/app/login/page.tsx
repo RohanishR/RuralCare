@@ -29,17 +29,21 @@ export default function LoginPage() {
       formData.append("username", email);
       formData.append("password", password);
 
-      const response = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1") + "/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: formData.toString()
-      });
+      const response = await fetch(
+        (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1") +
+          "/auth/login",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: formData.toString(),
+        },
+      );
 
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.detail || "Login failed");
       }
-      
+
       const data = await response.json();
       login(data.access_token, data.user);
       router.push(`/${data.user.role}/dashboard`);
@@ -106,7 +110,9 @@ export default function LoginPage() {
             <div className="w-full border-t border-border"></div>
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-surface text-muted-foreground">Or continue with</span>
+            <span className="px-2 bg-surface text-muted-foreground">
+              Or continue with
+            </span>
           </div>
         </div>
 
@@ -120,7 +126,10 @@ export default function LoginPage() {
 
         <p className="text-center text-sm text-muted-foreground">
           Don't have an account?{" "}
-          <Link href="/register" className="text-primary hover:underline font-medium">
+          <Link
+            href="/register"
+            className="text-primary hover:underline font-medium"
+          >
             Register here
           </Link>
         </p>

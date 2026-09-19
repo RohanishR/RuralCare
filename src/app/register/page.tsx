@@ -33,7 +33,7 @@ export default function RegisterPage() {
         name,
         email,
         password,
-        role
+        role,
       });
 
       // 2. Automatically log them in after successful registration
@@ -41,16 +41,22 @@ export default function RegisterPage() {
       formData.append("username", email);
       formData.append("password", password);
 
-      const response = await fetch((process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1") + "/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: formData.toString()
-      });
+      const response = await fetch(
+        (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1") +
+          "/auth/login",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: formData.toString(),
+        },
+      );
 
       if (!response.ok) {
-        throw new Error("Registration succeeded, but login failed. Please log in manually.");
+        throw new Error(
+          "Registration succeeded, but login failed. Please log in manually.",
+        );
       }
-      
+
       const data = await response.json();
       login(data.access_token, data.user);
       router.push(`/${data.user.role}/dashboard`);
@@ -137,7 +143,9 @@ export default function RegisterPage() {
             <div className="w-full border-t border-border"></div>
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-surface text-muted-foreground">Or continue with</span>
+            <span className="px-2 bg-surface text-muted-foreground">
+              Or continue with
+            </span>
           </div>
         </div>
 
@@ -151,7 +159,10 @@ export default function RegisterPage() {
 
         <p className="text-center text-sm text-muted-foreground">
           Already have an account?{" "}
-          <Link href="/login" className="text-primary hover:underline font-medium">
+          <Link
+            href="/login"
+            className="text-primary hover:underline font-medium"
+          >
             Sign in here
           </Link>
         </p>
