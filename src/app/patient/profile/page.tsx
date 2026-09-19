@@ -180,7 +180,6 @@ export default function PatientProfilePage() {
                   onChange={handleChange}
                   className="w-full h-12 pl-11 pr-4 rounded-lg bg-surface-container-lowest border border-outline-variant focus:border-primary focus:ring-0"
                   placeholder="e.g. Ramesh Kumar Verma"
-                  required
                 />
               </div>
             </div>
@@ -202,7 +201,6 @@ export default function PatientProfilePage() {
                   onChange={handleChange}
                   className="w-full h-12 pl-11 pr-4 rounded-lg bg-surface-container-lowest border border-outline-variant focus:border-primary focus:ring-0"
                   placeholder="9876543210"
-                  required
                 />
               </div>
             </div>
@@ -369,7 +367,6 @@ export default function PatientProfilePage() {
                 onChange={handleChange}
                 className="w-full h-12 px-4 rounded-lg bg-surface-container-lowest border border-outline-variant focus:border-primary focus:ring-0"
                 placeholder="Emergency Contact Name"
-                required
               />
             </div>
 
@@ -384,7 +381,6 @@ export default function PatientProfilePage() {
                 onChange={handleChange}
                 className="w-full h-12 px-4 rounded-lg bg-surface-container-lowest border border-outline-variant focus:border-primary focus:ring-0"
                 placeholder="e.g. Spouse, Parent"
-                required
               />
             </div>
 
@@ -399,7 +395,6 @@ export default function PatientProfilePage() {
                 onChange={handleChange}
                 className="w-full h-12 px-4 rounded-lg bg-surface-container-lowest border border-outline-variant focus:border-primary focus:ring-0"
                 placeholder="Emergency Phone Number"
-                required
               />
             </div>
           </div>

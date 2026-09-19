@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Login &amp; Authentication - RuralCare Telemedicine</title>
+<!-- Google Fonts: Plus Jakarta Sans & Inter -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS CDN with forms and container queries -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "surface-container": "#f0eded",
+            "on-surface-variant": "#3e484d",
+            "primary-container": "#007f9c",
+            "secondary-container": "#b2ebff",
+            "secondary-fixed": "#b2ebff",
+            "tertiary-fixed": "#7ffc97",
+            "surface-tint": "#00677f",
+            "error-container": "#ffdad6",
+            "error": "#ba1a1a",
+            "on-primary": "#ffffff",
+            "on-secondary-container": "#326c7c",
+            "surface-container-low": "#f6f3f2",
+            "on-error-container": "#93000a",
+            "inverse-surface": "#303030",
+            "on-secondary-fixed-variant": "#074e5e",
+            "tertiary": "#006b2c",
+            "tertiary-fixed-dim": "#62df7d",
+            "primary": "#00657c",
+            "surface-dim": "#dcd9d9",
+            "surface-variant": "#e5e2e1",
+            "surface-container-lowest": "#ffffff",
+            "surface-container-high": "#eae7e7",
+            "on-tertiary": "#ffffff",
+            "on-primary-fixed-variant": "#004e60",
+            "outline": "#6e797e",
+            "inverse-on-surface": "#f3f0ef",
+            "primary-fixed": "#b6ebff",
+            "secondary": "#2b6676",
+            "on-primary-container": "#fafdff",
+            "on-background": "#1b1c1c",
+            "surface": "#fcf9f8",
+            "tertiary-container": "#00873a",
+            "inverse-primary": "#6bd4f6",
+            "on-tertiary-fixed-variant": "#005320",
+            "on-primary-fixed": "#001f28",
+            "on-surface": "#1b1c1c",
+            "outline-variant": "#bdc8cd",
+            "on-secondary-fixed": "#001f27",
+            "primary-fixed-dim": "#6bd4f6",
+            "on-tertiary-fixed": "#002109",
+            "on-secondary": "#ffffff",
+            "surface-bright": "#fcf9f8",
+            "on-tertiary-container": "#f7fff2",
+            "secondary-fixed-dim": "#97cfe2",
+            "on-error": "#ffffff",
+            "background": "#fcf9f8",
+            "surface-container-highest": "#e5e2e1"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "space-sm": "0.5rem",
+            "margin": "2rem",
+            "gutter-mobile": "1rem",
+            "space-xs": "0.25rem",
+            "space-md": "1rem",
+            "gutter": "1.5rem",
+            "space-xl": "2rem",
+            "margin-mobile": "1rem",
+            "space-lg": "1.5rem"
+          },
+          "fontFamily": {
+            "label-md": ["Inter"],
+            "headline-lg": ["Plus Jakarta Sans"],
+            "label-lg": ["Inter"],
+            "title-lg": ["Plus Jakarta Sans"],
+            "headline-lg-mobile": ["Plus Jakarta Sans"],
+            "body-sm": ["Inter"],
+            "headline-md": ["Plus Jakarta Sans"],
+            "body-md": ["Inter"],
+            "body-lg": ["Inter"],
+            "display-lg-mobile": ["Plus Jakarta Sans"],
+            "label-sm": ["Inter"],
+            "headline-sm": ["Plus Jakarta Sans"],
+            "display-lg": ["Plus Jakarta Sans"]
+          },
+          "fontSize": {
+            "label-md": ["14px", { "lineHeight": "18px", "fontWeight": "600" }],
+            "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "label-lg": ["16px", { "lineHeight": "22px", "fontWeight": "600" }],
+            "title-lg": ["18px", { "lineHeight": "26px", "fontWeight": "600" }],
+            "headline-lg-mobile": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+            "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+            "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+            "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+            "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+            "display-lg-mobile": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "label-sm": ["12px", { "lineHeight": "16px", "letterSpacing": "0.04em", "fontWeight": "600" }],
+            "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+            "display-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-family: 'Material Symbols Outlined';
+      font-weight: normal;
+      font-style: normal;
+      font-size: 20px;
+      line-height: 1;
+      display: inline-block;
+      white-space: nowrap;
+      word-wrap: normal;
+      direction: ltr;
+      -webkit-font-feature-settings: 'liga';
+      -webkit-font-smoothing: antialiased;
+    }
+    .custom-ring:focus-within {
+      outline: 2px solid #0090b0;
+      box-shadow: 0 0 0 3px rgba(0, 144, 176, 0.2);
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface antialiased min-h-screen flex flex-col justify-between selection:bg-secondary-container selection:text-on-secondary-container">
+<!-- TOP HEADER / BRANDING & EMERGENCY DIALER BAR -->
+<header class="w-full bg-surface-container-lowest border-b border-outline-variant shadow-sm sticky top-0 z-40">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
+<!-- Brand Logo Area with provided reference logo -->
+<a class="flex items-center gap-3 focus:outline-none focus:ring-2 focus:ring-primary rounded-lg p-1" href="#">
+<img alt="RuralCare Healthcare, wherever you are" class="h-10 sm:h-12 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1V0FQI2eM9nOW5WhwpDD5OHYSrXqvGhrjjMtRhjO4H7fLmjxdXGUtL_8Hv-A3LPlDq7Ij01rhaSR5Qb1fA1qf-sIYQXJtRk8ZoxBo--mNEKeQ9CqgG2CzKAMNMXennLRUvKyAPU_fdISY2Rmk2_CM35LATG3ZqlJ8_dUkorKQNdC6T3OArF9OHNntweQtqTLqGmTcTNN8aFlJjSLx9pnwOBbuXIS-eqDJb9BeloJT04mgXYwHRgu7EzUMg"/>
+</a>
+<!-- Trailing Action: Emergency Dialing & Language Support -->
+<div class="flex items-center gap-3">
+<!-- Low Bandwidth Indicator Badge -->
+<div class="hidden sm:flex items-center gap-1.5 px-3 py-1 bg-surface-container-low border border-outline-variant rounded-full text-secondary font-label-sm text-label-sm">
+<span class="w-2 h-2 rounded-full bg-tertiary animate-pulse"></span>
+<span>Fast 2G/3G Ready</span>
+</div>
+<!-- Emergency Dial Button -->
+<a class="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-error text-on-error font-label-md text-label-md hover:bg-error-container hover:text-on-error-container transition-all shadow-sm focus:ring-2 focus:ring-error focus:ring-offset-2" href="tel:112">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">emergency</span>
+<span class="hidden md:inline">Emergency:</span>
+<span class="font-bold tracking-wider">Dial 112</span>
+</a>
+<!-- Toll Free Helpline -->
+<a class="hidden lg:inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-outline-variant text-on-surface-variant hover:text-primary hover:bg-surface-container transition-colors font-label-sm text-label-sm" href="tel:18007872522">
+<span class="material-symbols-outlined">call</span>
+<span>1800-RURAL-CARE</span>
+</a>
+</div>
+</div>
+</header>
+<!-- MAIN LOGIN & AUTHENTICATION CANVAS (BENTO/SPLIT LAYOUT) -->
+<main class="grow flex items-center justify-center p-4 sm:p-6 md:p-8">
+<div class="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+<!-- LEFT HERO SECTION: Trust, Dignity & Rural Telehealth Commitment -->
+<section class="lg:col-span-6 bg-surface-container-low border border-outline-variant rounded-xl p-6 sm:p-8 md:p-10 flex flex-col justify-between relative overflow-hidden shadow-sm">
+<!-- Decorative Ambient Tint Overlay -->
+<div class="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-secondary-container/40 rounded-full blur-3xl pointer-events-none"></div>
+<div class="absolute bottom-0 left-0 -ml-16 -mb-16 w-64 h-64 bg-primary-fixed/30 rounded-full blur-2xl pointer-events-none"></div>
+<div class="relative z-10 space-y-6">
+<!-- Connection Status Pill -->
+<div class="inline-flex items-center gap-2 px-3 py-1.5 bg-surface-container-lowest rounded-full border border-outline-variant shadow-sm">
+<span class="w-2.5 h-2.5 rounded-full bg-tertiary"></span>
+<span class="font-label-sm text-label-sm text-primary font-bold tracking-wide">CERTIFIED TELEHEALTH NETWORK</span>
+</div>
+<div class="space-y-3">
+<h1 class="font-headline-lg text-headline-lg-mobile md:text-headline-lg text-primary tracking-tight">
+              Access certified doctors anytime, anywhere.
+            </h1>
+<p class="font-body-md text-body-md text-on-surface-variant max-w-lg">
+              Empowering remote villages and farming families with compassionate, prompt medical consultations without long bus journeys or lost working days.
+            </p>
+</div>
+<!-- Feature Highlights Bento / Cards -->
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+<!-- Resilience Card -->
+<div class="bg-surface-container-lowest p-3.5 rounded-lg border border-outline-variant/70 shadow-sm flex flex-col gap-2">
+<div class="w-8 h-8 rounded-md bg-secondary-container flex items-center justify-center text-on-secondary-container">
+<span class="material-symbols-outlined text-primary">network_wifi_1_bar</span>
+</div>
+<span class="font-label-md text-label-md text-on-surface">Low-Bandwidth Resilience</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant text-xs">Seamless audio fallback during patchy network reception.</p>
+</div>
+<!-- Bilingual Consultation -->
+<div class="bg-surface-container-lowest p-3.5 rounded-lg border border-outline-variant/70 shadow-sm flex flex-col gap-2">
+<div class="w-8 h-8 rounded-md bg-secondary-container flex items-center justify-center text-on-secondary-container">
+<span class="material-symbols-outlined text-primary">translate</span>
+</div>
+<span class="font-label-md text-label-md text-on-surface">Bilingual Care</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant text-xs">Consult in 12+ regional tongues with accredited physicians.</p>
+</div>
+<!-- Privacy Guarantee -->
+<div class="bg-surface-container-lowest p-3.5 rounded-lg border border-outline-variant/70 shadow-sm flex flex-col gap-2">
+<div class="w-8 h-8 rounded-md bg-secondary-container flex items-center justify-center text-on-secondary-container">
+<span class="material-symbols-outlined text-primary">shield</span>
+</div>
+<span class="font-label-md text-label-md text-on-surface">100% Data Privacy</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant text-xs">ABHA &amp; HIPAA clinical confidentiality encryption.</p>
+</div>
+</div>
+</div>
+<!-- Trust Hero Image Placeholder with Contextual Prompt -->
+<div class="relative z-10 mt-6 pt-6 border-t border-outline-variant/60">
+<div class="relative rounded-lg overflow-hidden border border-outline-variant bg-surface-container shadow-inner">
+<img class="w-full h-44 object-cover" data-alt="A caring medical doctor holding a tablet consultation with a rural family outside their peaceful village home during warm morning daylight. The physician listens intently with warmth and empathy. The background features lush agricultural hills and a blue sky, conveying dependable telemedicine and community health dignity. Clean bright clinical style with serene oceanic cyan accents." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAFMg_m9AEP6MjL3kfR6NdransOJPCdWy9yATwAjxZM4bnmqo6uj4hS1EucUGwdBq0DwnU6cLqSbQBvouNilzHhd85lzR6qZJzP_gCxKRO_s-JX3TL8Pl-GRqFMI3iXwTanzDujbb-cd2M6YFzgwYzPxreccFCSfFhog-ImJ1mTINjREwa5eaPPZ5t7LhgYYlsXcJcjiVGIJBVj-LTQzfmMjgratSru2j7kO3queG8_CzIjb0oeF7_N"/>
+<div class="absolute inset-0 bg-linear-to-t from-primary/80 via-transparent to-transparent flex items-end p-4">
+<p class="font-label-sm text-label-sm text-on-primary font-medium flex items-center gap-1.5">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">verified</span>
+                Over 480,000 rural consultations delivered nationwide
+              </p>
+</div>
+</div>
+</div>
+</section>
+<!-- RIGHT CARD: Authentication & Role Switcher -->
+<section class="lg:col-span-6 bg-surface-container-lowest border border-outline-variant rounded-xl p-6 sm:p-8 md:p-10 shadow-sm flex flex-col justify-center">
+<div class="mb-6 space-y-1">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-primary font-bold uppercase tracking-wider">Patient &amp; Doctor Portal</span>
+<a class="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors flex items-center gap-1" href="#">
+<span>Admin Log in</span>
+<span class="material-symbols-outlined text-sm">north_east</span>
+</a>
+</div>
+<h2 class="font-headline-md text-headline-md text-on-surface">Welcome back to RuralCare</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Sign in to check health records, join video calls, or access prescriptions.</p>
+</div>
+<!-- Role Switcher Toggle Tabs -->
+<div class="bg-surface-container-low p-1 rounded-lg flex items-center gap-1 mb-6 border border-outline-variant" role="tablist">
+<button aria-selected="true" class="flex-1 py-2.5 px-4 rounded-md font-label-md text-label-md flex items-center justify-center gap-2 transition-all bg-surface-container-lowest text-primary shadow-sm border border-outline-variant/60 font-bold" id="role-patient" onclick="switchRole('patient')" role="tab" type="button">
+<span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">person</span>
+<span>Patient</span>
+</button>
+<button aria-selected="false" class="flex-1 py-2.5 px-4 rounded-md font-label-md text-label-md flex items-center justify-center gap-2 transition-all text-on-surface-variant hover:text-primary hover:bg-surface-container/50 font-normal" id="role-doctor" onclick="switchRole('doctor')" role="tab" type="button">
+<span class="material-symbols-outlined text-lg">stethoscope</span>
+<span>Doctor / Clinician</span>
+</button>
+</div>
+<!-- Form Submission -->
+<form class="space-y-4" onsubmit="event.preventDefault();">
+<!-- Email / Mobile Field -->
+<div>
+<label class="block font-label-md text-label-md text-on-surface mb-1.5" for="identifier">
+<span id="identifier-label">Mobile Number or Email</span>
+<span class="text-error font-bold">*</span>
+</label>
+<div class="relative custom-ring rounded-lg border border-outline-variant bg-surface-container-lowest transition-all">
+<div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-outline">
+<span class="material-symbols-outlined" id="identifier-icon">call</span>
+</div>
+<input class="w-full h-12 pl-10 pr-4 rounded-lg bg-transparent border-none text-on-surface font-body-md text-body-md placeholder:text-outline-variant focus:ring-0 focus:outline-none" id="identifier" name="identifier" placeholder="e.g. 98765 43210 or name@domain.com" required="" type="text"/>
+</div>
+</div>
+<!-- Password Field with Show/Hide Toggle -->
+<div>
+<div class="flex items-center justify-between mb-1.5">
+<label class="font-label-md text-label-md text-on-surface" for="password">
+                Password <span class="text-error font-bold">*</span>
+</label>
+<a class="font-label-sm text-label-sm text-primary hover:underline focus:outline-none focus:text-primary-container" href="#">
+                Forgot password?
+              </a>
+</div>
+<div class="relative custom-ring rounded-lg border border-outline-variant bg-surface-container-lowest transition-all">
+<div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-outline">
+<span class="material-symbols-outlined">lock</span>
+</div>
+<input class="w-full h-12 pl-10 pr-12 rounded-lg bg-transparent border-none text-on-surface font-body-md text-body-md placeholder:text-outline-variant focus:ring-0 focus:outline-none" id="password" name="password" placeholder="Enter your confidential password" required="" type="password"/>
+<button aria-label="Show password" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-outline hover:text-on-surface focus:outline-none" id="toggle-password-btn" onclick="togglePasswordVisibility()" type="button">
+<span class="material-symbols-outlined" id="pwd-icon">visibility</span>
+</button>
+</div>
+</div>
+<!-- Remember Me Checkbox -->
+<div class="flex items-center pt-1">
+<label class="inline-flex items-center gap-2.5 cursor-pointer select-none">
+<input class="w-5 h-5 rounded border-outline-variant text-primary focus:ring-primary focus:ring-offset-0 transition-colors cursor-pointer" name="remember" type="checkbox"/>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Keep me signed in on this secure device</span>
+</label>
+</div>
+<!-- Primary Submit Button -->
+<button class="w-full h-12 md:h-12 bg-primary hover:bg-primary-container text-on-primary rounded-lg font-label-lg text-label-lg font-bold transition-all shadow-sm flex items-center justify-center gap-2 focus:ring-2 focus:ring-primary focus:ring-offset-2 mt-2" type="submit">
+<span>Login to Your Account</span>
+<span class="material-symbols-outlined">arrow_forward</span>
+</button>
+</form>
+<!-- Divider -->
+<div class="relative my-6 flex items-center">
+<div class="grow border-t border-outline-variant"></div>
+<span class="flex-shrink mx-3 px-2 bg-surface-container-lowest font-label-sm text-label-sm text-outline font-semibold uppercase tracking-wider">OR</span>
+<div class="grow border-t border-outline-variant"></div>
+</div>
+<!-- Social & Government Health ID SSO -->
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+<!-- ABHA / Ayushman Bharat Digital Health ID -->
+<button class="h-12 px-3 rounded-lg border border-outline-variant bg-surface-container-lowest hover:bg-surface-container text-on-surface font-label-md text-label-md flex items-center justify-center gap-2 transition-colors shadow-sm" type="button">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">fingerprint</span>
+<span>Login with ABHA ID</span>
+</button>
+<!-- Google SSO -->
+<button class="h-12 px-3 rounded-lg border border-outline-variant bg-surface-container-lowest hover:bg-surface-container text-on-surface font-label-md text-label-md flex items-center justify-center gap-2 transition-colors shadow-sm" type="button">
+<svg class="w-4 h-4" viewbox="0 0 24 24">
+<path d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z" fill="#4285F4"></path>
+<path d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z" fill="#34A853"></path>
+<path d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.16 0 9.97 0 12s.45 3.84 1.25 5.42l4.03-3.15z" fill="#FBBC05"></path>
+<path d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z" fill="#EA4335"></path>
+</svg>
+<span>Continue with Google</span>
+</button>
+</div>
+<!-- Footer Onboarding Navigation -->
+<div class="mt-6 pt-5 border-t border-outline-variant text-center space-y-2">
+<p class="font-body-md text-body-md text-on-surface-variant">
+            New to RuralCare? 
+            <a class="font-label-md text-label-md text-primary font-bold hover:underline" href="#">
+              Create an Account
+            </a>
+</p>
+<div class="flex items-center justify-center gap-3 font-label-sm text-label-sm text-outline">
+<a class="hover:text-primary transition-colors" href="#">Register as Patient</a>
+<span>•</span>
+<a class="hover:text-primary transition-colors" href="#">Apply as Doctor Partner</a>
+</div>
+</div>
+</section>
+</div>
+</main>
+<!-- DOCKED WEB FOOTER (From Shared Components & Style Guidelines) -->
+<footer class="w-full bg-surface-container border-t border-outline-variant mt-8">
+<div class="max-w-7xl mx-auto py-6 px-6 flex flex-col md:flex-row justify-between items-center gap-4 text-center md:text-left">
+<div class="space-y-1">
+<p class="font-headline-sm text-headline-sm font-bold text-primary">RuralCare</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant max-w-2xl">
+          © 2024 RuralCare Health. Accessible, dignified healthcare for all communities. If you are experiencing a life-threatening medical crisis, please immediately dial 112 or visit your nearest emergency health center.
+        </p>
+</div>
+<div class="flex flex-wrap items-center justify-center md:justify-end gap-x-5 gap-y-2 font-label-sm text-label-sm">
+<a class="text-on-surface-variant hover:underline" href="#">Privacy Policy</a>
+<a class="text-on-surface-variant hover:underline" href="#">Terms of Service</a>
+<a class="text-on-surface-variant hover:underline" href="#">Accessibility Statement</a>
+<a class="text-on-surface-variant hover:underline" href="#">Clinical Protocols</a>
+<a class="text-on-surface-variant hover:underline" href="#">Contact Support</a>
+</div>
+</div>
+</footer>
+<!-- Interactive Logic for Role Switching and Password Visibility -->
+<script>
+    function switchRole(role) {
+      const patientBtn = document.getElementById('role-patient');
+      const doctorBtn = document.getElementById('role-doctor');
+      const identifierLabel = document.getElementById('identifier-label');
+      const identifierInput = document.getElementById('identifier');
+      const identifierIcon = document.getElementById('identifier-icon');
+
+      if (role === 'patient') {
+        patientBtn.className = 'flex-1 py-2.5 px-4 rounded-md font-label-md text-label-md flex items-center justify-center gap-2 transition-all bg-surface-container-lowest text-primary shadow-sm border border-outline-variant/60 font-bold';
+        patientBtn.setAttribute('aria-selected', 'true');
+        
+        doctorBtn.className = 'flex-1 py-2.5 px-4 rounded-md font-label-md text-label-md flex items-center justify-center gap-2 transition-all text-on-surface-variant hover:text-primary hover:bg-surface-container/50 font-normal';
+        doctorBtn.setAttribute('aria-selected', 'false');
+
+        identifierLabel.innerText = 'Mobile Number or Email';
+        identifierInput.placeholder = 'e.g. 98765 43210 or name@domain.com';
+        identifierIcon.innerText = 'call';
+      } else {
+        doctorBtn.className = 'flex-1 py-2.5 px-4 rounded-md font-label-md text-label-md flex items-center justify-center gap-2 transition-all bg-surface-container-lowest text-primary shadow-sm border border-outline-variant/60 font-bold';
+        doctorBtn.setAttribute('aria-selected', 'true');
+        
+        patientBtn.className = 'flex-1 py-2.5 px-4 rounded-md font-label-md text-label-md flex items-center justify-center gap-2 transition-all text-on-surface-variant hover:text-primary hover:bg-surface-container/50 font-normal';
+        patientBtn.setAttribute('aria-selected', 'false');
+
+        identifierLabel.innerText = 'Medical Registration ID / Work Email';
+        identifierInput.placeholder = 'e.g. MCI-2023-9941 or dr.smith@ruralcare.org';
+        identifierIcon.innerText = 'badge';
+      }
+    }
+
+    function togglePasswordVisibility() {
+      const pwdInput = document.getElementById('password');
+      const pwdIcon = document.getElementById('pwd-icon');
+      if (pwdInput.type === 'password') {
+        pwdInput.type = 'text';
+        pwdIcon.innerText = 'visibility_off';
+      } else {
+        pwdInput.type = 'password';
+        pwdIcon.innerText = 'visibility';
+      }
+    }
+  </script>
+</body></html>

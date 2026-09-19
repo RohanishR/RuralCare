@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>RuralCare — Quality healthcare, wherever you are</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "inverse-surface": "#303030",
+            "inverse-on-surface": "#f3f0ef",
+            "on-error": "#ffffff",
+            "on-primary-fixed": "#001f28",
+            "on-surface-variant": "#3e484d",
+            "surface-bright": "#fcf9f8",
+            "surface-dim": "#dcd9d9",
+            "on-primary-fixed-variant": "#004e60",
+            "on-background": "#1b1c1c",
+            "tertiary-fixed": "#7ffc97",
+            "error": "#ba1a1a",
+            "surface-variant": "#e5e2e1",
+            "on-tertiary-fixed-variant": "#005320",
+            "surface-container-high": "#eae7e7",
+            "on-tertiary-fixed": "#002109",
+            "on-secondary-fixed": "#001f27",
+            "error-container": "#ffdad6",
+            "on-secondary-container": "#326c7c",
+            "secondary-fixed": "#b2ebff",
+            "tertiary-fixed-dim": "#62df7d",
+            "on-error-container": "#93000a",
+            "surface-container-low": "#f6f3f2",
+            "on-tertiary": "#ffffff",
+            "surface-container": "#f0eded",
+            "surface-tint": "#00677f",
+            "secondary": "#2b6676",
+            "tertiary-container": "#00873a",
+            "on-secondary": "#ffffff",
+            "outline": "#6e797e",
+            "secondary-container": "#b2ebff",
+            "on-secondary-fixed-variant": "#074e5e",
+            "tertiary": "#006b2c",
+            "primary-fixed": "#b6ebff",
+            "surface-container-lowest": "#ffffff",
+            "inverse-primary": "#6bd4f6",
+            "secondary-fixed-dim": "#97cfe2",
+            "background": "#fcf9f8",
+            "on-tertiary-container": "#f7fff2",
+            "outline-variant": "#bdc8cd",
+            "on-surface": "#1b1c1c",
+            "primary-fixed-dim": "#6bd4f6",
+            "primary": "#00657c",
+            "on-primary": "#ffffff",
+            "on-primary-container": "#fafdff",
+            "surface": "#fcf9f8",
+            "primary-container": "#007f9c",
+            "surface-container-highest": "#e5e2e1"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "space-md": "1rem",
+            "space-xl": "2rem",
+            "margin": "2rem",
+            "space-xs": "0.25rem",
+            "gutter": "1.5rem",
+            "space-lg": "1.5rem",
+            "gutter-mobile": "1rem",
+            "space-sm": "0.5rem",
+            "margin-mobile": "1rem"
+          },
+          "fontFamily": {
+            "label-sm": ["Inter"],
+            "headline-md": ["Plus Jakarta Sans"],
+            "body-md": ["Inter"],
+            "headline-lg-mobile": ["Plus Jakarta Sans"],
+            "title-lg": ["Plus Jakarta Sans"],
+            "headline-lg": ["Plus Jakarta Sans"],
+            "label-lg": ["Inter"],
+            "body-sm": ["Inter"],
+            "label-md": ["Inter"],
+            "display-lg": ["Plus Jakarta Sans"],
+            "display-lg-mobile": ["Plus Jakarta Sans"],
+            "headline-sm": ["Plus Jakarta Sans"],
+            "body-lg": ["Inter"]
+          },
+          "fontSize": {
+            "label-sm": ["12px", { "lineHeight": "16px", "letterSpacing": "0.04em", "fontWeight": "600" }],
+            "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+            "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+            "headline-lg-mobile": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+            "title-lg": ["18px", { "lineHeight": "26px", "fontWeight": "600" }],
+            "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "label-lg": ["16px", { "lineHeight": "22px", "fontWeight": "600" }],
+            "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+            "label-md": ["14px", { "lineHeight": "18px", "fontWeight": "600" }],
+            "display-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "display-lg-mobile": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+            "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }]
+          }
+        },
+      },
+    }
+  </script>
+</head>
+<body class="bg-background text-on-surface antialiased min-h-screen flex flex-col font-body-md text-body-md selection:bg-secondary-container selection:text-on-secondary-container">
+<!-- TOP EMERGENCY BANNER / BANDWIDTH STATUS -->
+<aside class="bg-primary text-on-primary text-label-sm font-label-sm py-2 px-4 flex items-center justify-between border-b border-primary-container z-50">
+<div class="max-w-7xl mx-auto w-full flex items-center justify-between flex-wrap gap-2">
+<div class="flex items-center gap-2">
+<span class="flex h-2.5 w-2.5 relative">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-tertiary-fixed opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-tertiary-fixed"></span>
+</span>
+<span class="font-medium">Telehealth Bandwidth Optimizer: Ultra-Lite 2G/3G Mode Ready</span>
+</div>
+<div class="flex items-center gap-4">
+<span class="hidden sm:inline text-on-primary-container">Need Immediate Trauma Support?</span>
+<span class="font-bold flex items-center gap-1 bg-surface-container-lowest/10 px-2 py-0.5 rounded">
+<span class="material-symbols-outlined text-[16px]">call</span> Dial 112 or 1800-RURAL-CARE
+        </span>
+</div>
+</div>
+</aside>
+<!-- TOP BAR (SHARED COMPONENT: TopNavBar) -->
+<header class="sticky top-0 z-50 bg-surface shadow-sm border-b border-outline-variant transition-all duration-200 ease-in-out">
+<div class="w-full px-6 py-3 max-w-7xl mx-auto flex items-center justify-between gap-4">
+<!-- Brand Logo Anchor -->
+<a aria-label="RuralCare Home" class="flex items-center gap-2 group shrink-0" href="#">
+<img alt="RuralCare Logo" class="h-10 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1V0FQI2eM9nOW5WhwpDD5OHYSrXqvGhrjjMtRhjO4H7fLmjxdXGUtL_8Hv-A3LPlDq7Ij01rhaSR5Qb1fA1qf-sIYQXJtRk8ZoxBo--mNEKeQ9CqgG2CzKAMNMXennLRUvKyAPU_fdISY2Rmk2_CM35LATG3ZqlJ8_dUkorKQNdC6T3OArF9OHNntweQtqTLqGmTcTNN8aFlJjSLx9pnwOBbuXIS-eqDJb9BeloJT04mgXYwHRgu7EzUMg"/>
+</a>
+<!-- Desktop Navigation Links -->
+<nav aria-label="Main Navigation" class="hidden md:flex items-center gap-6 lg:gap-8">
+<a class="text-primary font-bold border-b-2 border-primary pb-1 font-label-lg text-label-lg transition-all duration-200 ease-in-out" href="#home">Home</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors font-label-lg text-label-lg hover:bg-surface-container px-2 py-1 rounded" href="#how-it-works">How It Works</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors font-label-lg text-label-lg hover:bg-surface-container px-2 py-1 rounded" href="#patients">For Patients</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors font-label-lg text-label-lg hover:bg-surface-container px-2 py-1 rounded" href="#doctors">For Doctors</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors font-label-lg text-label-lg hover:bg-surface-container px-2 py-1 rounded" href="#about">About</a>
+</nav>
+<!-- Right Action Cluster: Language, Login, CTA -->
+<div class="flex items-center gap-3">
+<!-- Language Selector -->
+<div class="relative inline-flex items-center">
+<label class="sr-only" for="lang-select">Choose Language</label>
+<span class="material-symbols-outlined text-primary absolute left-2 pointer-events-none text-[20px]">translate</span>
+<select class="pl-8 pr-7 py-2 bg-surface-container-low border border-outline-variant rounded-lg text-on-surface text-label-sm font-label-sm hover:bg-surface-container focus:ring-2 focus:ring-primary focus:outline-none appearance-none cursor-pointer" id="lang-select">
+<option selected="" value="en">English</option>
+<option value="hi">हिंदी (Hindi)</option>
+<option value="ta">தமிழ் (Tamil)</option>
+<option value="bn">বাংলা (Bengali)</option>
+</select>
+<span class="material-symbols-outlined text-on-surface-variant absolute right-1.5 pointer-events-none text-[18px]">expand_more</span>
+</div>
+<!-- Login Button -->
+<a class="hidden sm:inline-flex items-center justify-center min-h-11 px-4 py-2 text-primary hover:bg-surface-container font-label-lg text-label-lg rounded-lg transition-colors duration-150" href="#login">
+          Login
+        </a>
+<!-- Primary CTA: Get Started -->
+<a class="inline-flex items-center justify-center min-h-11 px-5 py-2.5 bg-primary text-on-primary hover:bg-primary-container font-label-lg text-label-lg rounded-lg shadow-sm transition-all duration-200 ease-in-out" href="#find-doctor">
+          Get Started
+        </a>
+<!-- Mobile Menu Trigger -->
+<button aria-label="Toggle navigation menu" class="md:hidden p-2 text-on-surface hover:bg-surface-container rounded-lg" onclick="document.getElementById('mobile-drawer').classList.toggle('hidden')" type="button">
+<span class="material-symbols-outlined text-[26px]">menu</span>
+</button>
+</div>
+</div>
+<!-- Mobile Navigation Drawer (Toggled) -->
+<div class="hidden md:hidden border-t border-outline-variant bg-surface px-6 py-4 space-y-3" id="mobile-drawer">
+<a class="block py-2 text-primary font-bold font-label-lg text-label-lg" href="#home">Home</a>
+<a class="block py-2 text-on-surface-variant hover:text-primary font-label-lg text-label-lg" href="#how-it-works">How It Works</a>
+<a class="block py-2 text-on-surface-variant hover:text-primary font-label-lg text-label-lg" href="#patients">For Patients</a>
+<a class="block py-2 text-on-surface-variant hover:text-primary font-label-lg text-label-lg" href="#doctors">For Doctors</a>
+<a class="block py-2 text-on-surface-variant hover:text-primary font-label-lg text-label-lg" href="#about">About</a>
+<div class="pt-3 border-t border-outline-variant flex flex-col gap-2">
+<a class="w-full text-center py-2.5 border border-outline-variant text-primary rounded-lg font-label-lg text-label-lg" href="#login">Login</a>
+</div>
+</div>
+</header>
+<!-- MAIN CANVAS -->
+<main class="grow">
+<!-- HERO SECTION -->
+<section class="relative overflow-hidden pt-8 pb-16 lg:pt-16 lg:pb-24 bg-linear-to-b from-surface via-surface-container-low to-background" id="home">
+<div class="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+<!-- Left Hero Content (7 cols) -->
+<div class="lg:col-span-7 space-y-6">
+<div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm shadow-sm border border-secondary-fixed">
+<span class="material-symbols-outlined text-[18px]">verified</span>
+<span>Accredited Remote Clinical Network • 28 Indian States</span>
+</div>
+<h1 class="font-display-lg text-display-lg-mobile md:text-display-lg font-bold text-on-surface tracking-tight text-balance">
+            Quality healthcare, wherever you are.
+          </h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl leading-relaxed">
+            Connect with qualified doctors from anywhere, get medical guidance remotely, and keep your healthcare records in one place.
+          </p>
+<!-- CTAs -->
+<div class="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+<a class="min-h-13.5 px-8 py-3.5 bg-primary text-on-primary hover:bg-primary-container font-label-lg text-label-lg rounded-lg shadow-md hover:shadow-lg flex items-center justify-center gap-2.5 transition-all duration-200" href="#find-doctor">
+<span class="material-symbols-outlined text-[22px]">search</span>
+<span>Find a Doctor</span>
+</a>
+<a class="min-h-13.5 px-6 py-3.5 bg-secondary-container text-on-secondary-fixed-variant hover:bg-secondary-fixed font-label-lg text-label-lg rounded-lg border border-secondary-fixed-dim flex items-center justify-center gap-2.5 transition-colors duration-150" href="#how-it-works">
+<span class="material-symbols-outlined text-[22px]" data-weight="fill" style="font-variation-settings: 'FILL' 1;">play_circle</span>
+<span>How It Works</span>
+</a>
+</div>
+<!-- Trust Micro-Badges -->
+<div class="pt-6 border-t border-outline-variant/60 flex flex-wrap items-center gap-6 text-on-surface-variant text-label-sm font-label-sm">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-tertiary text-[18px]">check_circle</span>
+<span>ABHA / Ayushman Compliant</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-tertiary text-[18px]">check_circle</span>
+<span>Zero-Data Audio Fallback</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-tertiary text-[18px]">check_circle</span>
+<span>Free First Consultation</span>
+</div>
+</div>
+</div>
+<!-- Right Hero Visual / Interactive Telemedicine Simulation Showcase (5 cols) -->
+<div class="lg:col-span-5 relative">
+<!-- Glassmorphism Container with Subtle Ambient Depth -->
+<div class="relative bg-surface-container-lowest border border-outline-variant/80 rounded-2xl shadow-xl overflow-hidden p-4 md:p-5">
+<!-- Telemedicine Video Window Simulation -->
+<div class="relative rounded-xl overflow-hidden bg-inverse-surface aspect-4/3 flex items-end p-4">
+<img class="absolute inset-0 w-full h-full object-cover opacity-90" data-alt="A warm, compassionate Indian female doctor wearing a white lab coat with a stethoscope around her neck smiling during an active telemedicine video consultation with a rural family in bright soft morning sunlight. The composition is clean, modern, and clinical with tranquil teal medical accents." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCLjVuivTs3AMly0ZYlGikleYZdv5lWXmzEnO7-0qxy6c_rDmFwnUz1lvXjD2rTMmPNe9lNbA--ThDjs9Is_2P6kvUuVVhp8DlcLC1sEabALO2Sl0kdihDctitK_W-CAnrn5gRZ9hseZIz_RMYYTYeKjA9PApqUXeyKCCiM2Q-O_v4lQjiFom7L0t4To5ioTnuNTZzpiARq4K4lkSSmx4EIQ9_QOnVJdbhdxsuTakzWPYTWkk1XQUpo"/>
+<!-- Dark gradient overlay for contrast -->
+<div class="absolute inset-0 bg-linear-to-t from-black/80 via-black/20 to-transparent"></div>
+<!-- Top Telemedicine Overlays -->
+<div class="absolute top-3 left-3 right-3 flex items-center justify-between gap-2 z-10">
+<!-- Connectivity Chip -->
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md text-on-primary text-label-sm font-label-sm border border-white/20">
+<span class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
+<span>Strong Signal • Low-Bandwidth Mode Active</span>
+</div>
+<!-- Call Duration -->
+<div class="px-2 py-0.5 rounded bg-black/60 backdrop-blur-md text-white/90 text-label-sm font-label-sm">
+                  12:45
+                </div>
+</div>
+<!-- Doctor Info Banner on Video -->
+<div class="relative z-10 w-full flex items-center justify-between text-white">
+<div>
+<div class="flex items-center gap-1.5">
+<h2 class="font-title-lg text-title-lg font-bold">Dr. Priya Sharma, MD</h2>
+<span class="material-symbols-outlined text-emerald-400 text-[18px]" data-weight="fill" style="font-variation-settings: 'FILL' 1;">verified</span>
+</div>
+<p class="text-body-sm text-gray-200">General Medicine • AIIMS New Delhi</p>
+</div>
+<!-- Patient Mini Self-View PIP -->
+<div class="h-14 w-14 rounded-lg border-2 border-white/80 overflow-hidden shadow-lg bg-surface-variant shrink-0">
+<img class="w-full h-full object-cover" data-alt="A rural Indian farmer wearing a neat khadi shirt smiling warmly as he holds a tablet computer outdoors under a shaded veranda, participating in an online medical appointment. High key, warm natural lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuByIdc4v8QYSPbDEHwQm7cqgtKWIHrLIAJ5jzxrQJEhNzt6EqnmxifyX_bnAifsxU9g7cUL2kamsf7c7_uJW69Q-QIAYjX14U5T7wInzFyFVQbONOegJj7RSx6npKoqejgBs7P4fhz8j1HzKz5S2xvb2PZbj6rL9W6Uy2LASDzsWzVjMM0fWQjWAew1RyTnMY2x0VTjMeHMwIfw49ahEGPhRD4KKkRTOOEwusBs-zVWc7WpH_HoLuul"/>
+</div>
+</div>
+</div>
+<!-- Real-time Vital Monitor Widget Grid -->
+<div class="mt-4 grid grid-cols-2 gap-3">
+<div class="p-3 rounded-xl bg-surface-container-low border border-outline-variant/60 flex items-center gap-3">
+<div class="h-10 w-10 rounded-lg bg-error-container text-error flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[24px]">favorite</span>
+</div>
+<div>
+<div class="text-label-sm font-label-sm text-on-surface-variant">Heart Rate</div>
+<div class="text-headline-sm font-headline-sm font-bold text-on-surface">72 <span class="text-label-sm font-normal text-on-surface-variant">bpm</span></div>
+</div>
+</div>
+<div class="p-3 rounded-xl bg-surface-container-low border border-outline-variant/60 flex items-center gap-3">
+<div class="h-10 w-10 rounded-lg bg-secondary-container text-on-secondary-container flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[24px]">vital_signs</span>
+</div>
+<div>
+<div class="text-label-sm font-label-sm text-on-surface-variant">Blood Pressure</div>
+<div class="text-headline-sm font-headline-sm font-bold text-on-surface">120/80 <span class="text-label-sm font-normal text-on-surface-variant">mmHg</span></div>
+</div>
+</div>
+</div>
+<!-- Direct Dial / Consultation Actions -->
+<div class="mt-3 flex items-center justify-between p-2.5 rounded-xl bg-secondary-fixed/40 border border-secondary-fixed text-on-secondary-fixed-variant text-label-sm font-label-sm">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[20px]">mic</span>
+<span>Real-time Hindi &amp; English translation running</span>
+</div>
+<span class="text-primary font-bold">Secure HD</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- KEY BENEFITS SECTION -->
+<section class="py-16 bg-surface" id="patients">
+<div class="max-w-7xl mx-auto px-6">
+<div class="text-center max-w-3xl mx-auto mb-14 space-y-3">
+<div class="inline-block text-primary font-label-md text-label-md font-bold tracking-wider uppercase">Engineered for Dignity &amp; Access</div>
+<h2 class="text-headline-lg font-headline-lg font-bold text-on-surface">
+            Bridging the clinical divide for remote communities
+          </h2>
+<p class="text-body-lg font-body-lg text-on-surface-variant">
+            Thoughtfully built to perform effortlessly across unstable cellular towers, feature devices, and local community common service centres.
+          </p>
+</div>
+<!-- 4 Cards Bento Layout -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+<!-- Benefit 1 -->
+<div class="bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant/70 shadow-sm hover:shadow-md transition-shadow duration-200 flex flex-col justify-between">
+<div>
+<div class="h-12 w-12 rounded-xl bg-secondary-container text-on-secondary-container flex items-center justify-center mb-5">
+<span class="material-symbols-outlined text-[28px]">video_chat</span>
+</div>
+<h3 class="text-title-lg font-title-lg font-bold text-on-surface mb-2">
+                Consult Doctors Remotely
+              </h3>
+<p class="text-body-sm font-body-sm text-on-surface-variant leading-relaxed">
+                Video, audio, or low-bandwidth text consultations from your home or local health kiosk without travel expense.
+              </p>
+</div>
+<div class="mt-6 pt-4 border-t border-outline-variant/40 flex items-center text-primary font-label-sm text-label-sm font-bold gap-1">
+<span>Voice &amp; Video Ready</span>
+<span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</div>
+</div>
+<!-- Benefit 2 -->
+<div class="bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant/70 shadow-sm hover:shadow-md transition-shadow duration-200 flex flex-col justify-between">
+<div>
+<div class="h-12 w-12 rounded-xl bg-primary-fixed text-on-primary-fixed-variant flex items-center justify-center mb-5">
+<span class="material-symbols-outlined text-[28px]">translate</span>
+</div>
+<h3 class="text-title-lg font-title-lg font-bold text-on-surface mb-2">
+                Multilingual Support
+              </h3>
+<p class="text-body-sm font-body-sm text-on-surface-variant leading-relaxed">
+                Speak to certified doctors in your native tongue (English, Hindi, Tamil, Bengali, Telugu, and Marathi) without language barriers.
+              </p>
+</div>
+<div class="mt-6 pt-4 border-t border-outline-variant/40 flex items-center text-primary font-label-sm text-label-sm font-bold gap-1">
+<span>6 Regional Dialects</span>
+<span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</div>
+</div>
+<!-- Benefit 3 -->
+<div class="bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant/70 shadow-sm hover:shadow-md transition-shadow duration-200 flex flex-col justify-between">
+<div>
+<div class="h-12 w-12 rounded-xl bg-tertiary-fixed text-on-tertiary-fixed-variant flex items-center justify-center mb-5">
+<span class="material-symbols-outlined text-[28px]">medical_information</span>
+</div>
+<h3 class="text-title-lg font-title-lg font-bold text-on-surface mb-2">
+                Secure Medical Records
+              </h3>
+<p class="text-body-sm font-body-sm text-on-surface-variant leading-relaxed">
+                Access your health history, lab tests, digital prescriptions, and clinical summaries anytime on any device.
+              </p>
+</div>
+<div class="mt-6 pt-4 border-t border-outline-variant/40 flex items-center text-primary font-label-sm text-label-sm font-bold gap-1">
+<span>ABHA ID Linked</span>
+<span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</div>
+</div>
+<!-- Benefit 4 -->
+<div class="bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant/70 shadow-sm hover:shadow-md transition-shadow duration-200 flex flex-col justify-between">
+<div>
+<div class="h-12 w-12 rounded-xl bg-surface-container text-primary flex items-center justify-center mb-5">
+<span class="material-symbols-outlined text-[28px]">calendar_month</span>
+</div>
+<h3 class="text-title-lg font-title-lg font-bold text-on-surface mb-2">
+                Easy Appointment Booking
+              </h3>
+<p class="text-body-sm font-body-sm text-on-surface-variant leading-relaxed">
+                Instant slot selection with upfront transparent pricing, automated SMS reminders, and zero hidden hospital booking surcharges.
+              </p>
+</div>
+<div class="mt-6 pt-4 border-t border-outline-variant/40 flex items-center text-primary font-label-sm text-label-sm font-bold gap-1">
+<span>Zero Wait Times</span>
+<span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- HOW IT WORKS SECTION -->
+<section class="py-16 lg:py-24 bg-surface-container-low border-y border-outline-variant/50" id="how-it-works">
+<div class="max-w-7xl mx-auto px-6">
+<div class="flex flex-col md:flex-row md:items-end justify-between mb-14 gap-4">
+<div>
+<span class="text-primary font-label-md text-label-md font-bold uppercase">Simple 4-Step Process</span>
+<h2 class="text-headline-lg font-headline-lg font-bold text-on-surface mt-1">
+              Healthcare in four easy steps
+            </h2>
+</div>
+<p class="text-body-md font-body-md text-on-surface-variant max-w-md">
+            No complex installations or tech hurdles. Works straight from WhatsApp, web browser, or your local village kiosk.
+          </p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+<!-- Step 1 -->
+<div class="relative bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant shadow-sm hover:border-primary transition-colors">
+<div class="flex items-center justify-between mb-4">
+<span class="h-9 w-9 rounded-full bg-primary text-on-primary font-bold flex items-center justify-center text-label-md font-label-md">1</span>
+<span class="material-symbols-outlined text-on-surface-variant/60">person_add</span>
+</div>
+<h3 class="text-title-lg font-title-lg font-bold text-on-surface mb-2">Create your profile</h3>
+<p class="text-body-sm font-body-sm text-on-surface-variant">
+              Simple setup with basic phone number or ABHA ID. Verified instantly via OTP without needing an email address.
+            </p>
+</div>
+<!-- Step 2 -->
+<div class="relative bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant shadow-sm hover:border-primary transition-colors">
+<div class="flex items-center justify-between mb-4">
+<span class="h-9 w-9 rounded-full bg-primary text-on-primary font-bold flex items-center justify-center text-label-md font-label-md">2</span>
+<span class="material-symbols-outlined text-on-surface-variant/60">smart_toy</span>
+</div>
+<h3 class="text-title-lg font-title-lg font-bold text-on-surface mb-2">Describe your symptoms</h3>
+<p class="text-body-sm font-body-sm text-on-surface-variant">
+              Use our friendly AI symptom helper in plain words or voice notes in your local tongue to categorize triage level.
+            </p>
+</div>
+<!-- Step 3 -->
+<div class="relative bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant shadow-sm hover:border-primary transition-colors">
+<div class="flex items-center justify-between mb-4">
+<span class="h-9 w-9 rounded-full bg-primary text-on-primary font-bold flex items-center justify-center text-label-md font-label-md">3</span>
+<span class="material-symbols-outlined text-on-surface-variant/60">stethoscope</span>
+</div>
+<h3 class="text-title-lg font-title-lg font-bold text-on-surface mb-2">Choose a doctor</h3>
+<p class="text-body-sm font-body-sm text-on-surface-variant">
+              Filter by specialty, language, fee, and real-time availability. View verified peer reviews and credentials.
+            </p>
+</div>
+<!-- Step 4 -->
+<div class="relative bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant shadow-sm hover:border-primary transition-colors">
+<div class="flex items-center justify-between mb-4">
+<span class="h-9 w-9 rounded-full bg-primary text-on-primary font-bold flex items-center justify-center text-label-md font-label-md">4</span>
+<span class="material-symbols-outlined text-on-surface-variant/60">prescriptions</span>
+</div>
+<h3 class="text-title-lg font-title-lg font-bold text-on-surface mb-2">Consult remotely</h3>
+<p class="text-body-sm font-body-sm text-on-surface-variant">
+              Seamless WebRTC video or low-data audio call. Receive a digitally signed, authentic prescription directly to SMS.
+            </p>
+</div>
+</div>
+<!-- Step Demonstration Card / Flow Preview -->
+<div class="mt-12 bg-surface-container-lowest rounded-2xl border border-outline-variant p-6 lg:p-8 flex flex-col lg:flex-row items-center justify-between gap-8">
+<div class="space-y-3 max-w-xl">
+<span class="inline-flex items-center gap-1.5 text-tertiary font-bold text-label-sm font-label-sm">
+<span class="material-symbols-outlined text-[18px]">signal_cellular_alt_1_bar</span>
+              Optimized for Low Connectivity
+            </span>
+<h3 class="text-headline-md font-headline-md font-bold text-on-surface">Works where ordinary video apps fail</h3>
+<p class="text-body-md font-body-md text-on-surface-variant">
+              Our dynamic data pipeline downgrades frame-rates seamlessly to ensure clinical voice audio never cuts out during critical medical consultation.
+            </p>
+</div>
+<div class="flex items-center gap-4 w-full sm:w-auto">
+<a class="w-full sm:w-auto min-h-12 px-6 py-3 bg-secondary-container text-on-secondary-fixed-variant hover:bg-secondary-fixed font-label-lg text-label-lg rounded-lg flex items-center justify-center gap-2 text-center transition-colors" href="#how-it-works">
+<span>View Interactive Demo</span>
+<span class="material-symbols-outlined text-[20px]">chevron_right</span>
+</a>
+</div>
+</div>
+</div>
+</section>
+<!-- WHY RURALCARE? SECTION -->
+<section class="py-16 lg:py-24 bg-surface" id="about">
+<div class="max-w-7xl mx-auto px-6">
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+<!-- Left Column: Key Pillars & Interactive Feature Comparison -->
+<div class="lg:col-span-6 space-y-6">
+<div class="inline-block text-primary font-label-md text-label-md font-bold uppercase">Why RuralCare?</div>
+<h2 class="text-headline-lg font-headline-lg font-bold text-on-surface leading-tight">
+              Clinical standard care engineered for geographical equity
+            </h2>
+<p class="text-body-lg font-body-lg text-on-surface-variant">
+              Traditional hospitals require hours of perilous travel, missed daily wages, and overcrowded waiting corridors. RuralCare turns any smartphone or village computer into a direct line to top clinical doctors.
+            </p>
+<!-- Feature Bullet List with Rich Badges -->
+<div class="space-y-4 pt-2">
+<div class="flex items-start gap-4 p-4 rounded-xl bg-surface-container-low border border-outline-variant/60">
+<div class="p-2 rounded-lg bg-primary-fixed text-primary shrink-0">
+<span class="material-symbols-outlined text-[24px]">verified_user</span>
+</div>
+<div>
+<h3 class="text-title-lg font-title-lg font-bold text-on-surface">500+ Verified Specialist &amp; General Doctors</h3>
+<p class="text-body-sm font-body-sm text-on-surface-variant mt-0.5">Every doctor is accredited, background-verified with state medical councils, and trained in empathetic rural telehealth bedside manner.</p>
+</div>
+</div>
+<div class="flex items-start gap-4 p-4 rounded-xl bg-surface-container-low border border-outline-variant/60">
+<div class="p-2 rounded-lg bg-secondary-container text-secondary shrink-0">
+<span class="material-symbols-outlined text-[24px]">network_ping</span>
+</div>
+<div>
+<h3 class="text-title-lg font-title-lg font-bold text-on-surface">Optimized for 2G/3G Low-Connectivity Networks</h3>
+<p class="text-body-sm font-body-sm text-on-surface-variant mt-0.5">Proprietary dynamic stream degradation buffers clinical notes and transmits audio with under 25kbps bandwidth consumption.</p>
+</div>
+</div>
+<div class="flex items-start gap-4 p-4 rounded-xl bg-surface-container-low border border-outline-variant/60">
+<div class="p-2 rounded-lg bg-tertiary-fixed text-tertiary shrink-0">
+<span class="material-symbols-outlined text-[24px]">document_scanner</span>
+</div>
+<div>
+<h3 class="text-title-lg font-title-lg font-bold text-on-surface">Digital Verifiable Prescriptions</h3>
+<p class="text-body-sm font-body-sm text-on-surface-variant mt-0.5">Instantly downloadable with tamper-proof QR code accepted at all authorized Jan Aushadhi and rural pharmaceutical pharmacies.</p>
+</div>
+</div>
+<div class="flex items-start gap-4 p-4 rounded-xl bg-surface-container-low border border-outline-variant/60">
+<div class="p-2 rounded-lg bg-surface-container text-on-surface-variant shrink-0">
+<span class="material-symbols-outlined text-[24px]">shield</span>
+</div>
+<div>
+<h3 class="text-title-lg font-title-lg font-bold text-on-surface">100% ABDM &amp; HIPAA Compliant Security</h3>
+<p class="text-body-sm font-body-sm text-on-surface-variant mt-0.5">End-to-end encrypted consultations with strict patient data privacy standards and lifetime encrypted medical history storage.</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column: Interactive Comparison Matrix -->
+<div class="lg:col-span-6">
+<div class="bg-surface-container-lowest border border-outline-variant rounded-2xl p-6 sm:p-8 shadow-sm">
+<h3 class="text-headline-sm font-headline-sm font-bold text-on-surface mb-6 flex items-center justify-between">
+<span>Direct Comparison</span>
+<span class="text-label-sm font-label-sm px-2.5 py-1 rounded bg-secondary-container text-on-secondary-container">Standard vs RuralCare</span>
+</h3>
+<div class="space-y-4 divide-y divide-outline-variant/50">
+<div class="pt-4 first:pt-0">
+<div class="text-label-md font-label-md font-bold text-on-surface mb-2">Travel &amp; Waiting Overhead</div>
+<div class="grid grid-cols-2 gap-3 text-body-sm font-body-sm">
+<div class="p-3 bg-error-container/30 border border-error-container rounded-lg text-error">
+<div class="font-bold flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">close</span> Traditional Clinic</div>
+<p class="text-xs text-on-surface-variant mt-1">4–6 hours bus transit, lost day’s wages, crowded waiting room.</p>
+</div>
+<div class="p-3 bg-secondary-container/40 border border-secondary-fixed rounded-lg text-on-secondary-fixed-variant">
+<div class="font-bold flex items-center gap-1 text-primary"><span class="material-symbols-outlined text-[16px]">check</span> RuralCare</div>
+<p class="text-xs text-on-surface-variant mt-1">0 minutes commute. Connect in under 3 minutes right from home.</p>
+</div>
+</div>
+</div>
+<div class="pt-4">
+<div class="text-label-md font-label-md font-bold text-on-surface mb-2">Consultation Cost &amp; Transparency</div>
+<div class="grid grid-cols-2 gap-3 text-body-sm font-body-sm">
+<div class="p-3 bg-error-container/30 border border-error-container rounded-lg text-error">
+<div class="font-bold flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">close</span> Private City Hospital</div>
+<p class="text-xs text-on-surface-variant mt-1">₹800–₹1,500 consultation fee + diagnostic markup.</p>
+</div>
+<div class="p-3 bg-secondary-container/40 border border-secondary-fixed rounded-lg text-on-secondary-fixed-variant">
+<div class="font-bold flex items-center gap-1 text-primary"><span class="material-symbols-outlined text-[16px]">check</span> RuralCare</div>
+<p class="text-xs text-on-surface-variant mt-1">Subsidized from ₹99 or free via government welfare programs.</p>
+</div>
+</div>
+</div>
+<div class="pt-4">
+<div class="text-label-md font-label-md font-bold text-on-surface mb-2">Record Portability &amp; Follow-ups</div>
+<div class="grid grid-cols-2 gap-3 text-body-sm font-body-sm">
+<div class="p-3 bg-error-container/30 border border-error-container rounded-lg text-error">
+<div class="font-bold flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">close</span> Physical Paper Files</div>
+<p class="text-xs text-on-surface-variant mt-1">Easily lost, water damaged, or forgotten during emergency visits.</p>
+</div>
+<div class="p-3 bg-secondary-container/40 border border-secondary-fixed rounded-lg text-on-secondary-fixed-variant">
+<div class="font-bold flex items-center gap-1 text-primary"><span class="material-symbols-outlined text-[16px]">check</span> RuralCare</div>
+<p class="text-xs text-on-surface-variant mt-1">Permanent ABHA cloud storage, linked to patient's mobile number.</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Doctor Enrollment Quick Anchor -->
+<div class="mt-8 p-4 rounded-xl bg-surface-container-low border border-outline-variant flex items-center justify-between gap-4" id="doctors">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary text-[28px]">medical_services</span>
+<div>
+<div class="font-title-lg text-title-lg font-bold text-on-surface">Are you a practicing physician?</div>
+<p class="text-body-sm font-body-sm text-on-surface-variant">Give back with flexible remote telehealth shifts.</p>
+</div>
+</div>
+<a class="min-h-11 px-4 py-2 bg-primary text-on-primary hover:bg-primary-container rounded-lg font-label-md text-label-md shrink-0 transition-colors" href="#register-doctor">
+                  Join Network
+                </a>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- FINAL CALL TO ACTION BANNER -->
+<section class="py-16 bg-linear-to-r from-primary via-primary-container to-secondary text-on-primary relative overflow-hidden">
+<!-- Ambient Hydro Graphic Detail -->
+<div class="absolute -right-20 -bottom-20 w-96 h-96 rounded-full bg-white/10 blur-3xl pointer-events-none"></div>
+<div class="absolute -left-20 -top-20 w-96 h-96 rounded-full bg-primary-fixed/10 blur-3xl pointer-events-none"></div>
+<div class="max-w-5xl mx-auto px-6 text-center space-y-6 relative z-10">
+<!-- Toll-free Badge -->
+<div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-surface-container-lowest/15 backdrop-blur-md border border-white/20 text-on-primary font-label-md text-label-md shadow-sm">
+<span class="material-symbols-outlined text-tertiary-fixed text-[20px]">support_agent</span>
+<span>Toll-Free Health Assistance: 1800-RURAL-CARE (24x7 Available)</span>
+</div>
+<h2 class="text-display-lg-mobile md:text-headline-lg font-bold font-headline-lg tracking-tight text-white">
+          Start your healthcare journey today.
+        </h2>
+<p class="text-body-lg font-body-lg text-primary-fixed max-w-2xl mx-auto leading-relaxed">
+          Quality medical consultations are now just a call away. No long journeys, no crowded waiting rooms, no clinical uncertainty.
+        </p>
+<!-- Action Buttons -->
+<div class="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
+<a class="w-full sm:w-auto min-h-13.5 px-8 py-3.5 bg-surface-container-lowest text-primary hover:bg-surface-container-low font-label-lg text-label-lg rounded-lg shadow-lg hover:shadow-xl font-bold transition-all duration-200 flex items-center justify-center gap-2" href="#find-doctor">
+<span class="material-symbols-outlined text-[22px]">search</span>
+<span>Find a Doctor Now</span>
+</a>
+<a class="w-full sm:w-auto min-h-13.5 px-8 py-3.5 bg-transparent border-2 border-white text-white hover:bg-white/10 font-label-lg text-label-lg rounded-lg font-bold transition-colors duration-150 flex items-center justify-center gap-2" href="#register-doctor">
+<span class="material-symbols-outlined text-[22px]">stethoscope</span>
+<span>Register as Doctor</span>
+</a>
+</div>
+<p class="text-label-sm font-label-sm text-primary-fixed/80 pt-2">
+          Average connection time under 90 seconds • Instant Hindi, Tamil, and Bengali routing
+        </p>
+</div>
+</section>
+</main>
+<!-- EMERGENCY 112 CRISIS STRIP -->
+<div class="bg-error text-on-error py-2.5 px-6">
+<div class="max-w-7xl mx-auto flex items-center justify-center gap-2 text-center text-label-sm font-label-sm">
+<span class="material-symbols-outlined text-[18px]">warning</span>
+<span>If you are experiencing a life-threatening medical crisis, severe chest pain, or trauma, please immediately dial <strong>112</strong> or visit your nearest emergency health center.</span>
+</div>
+</div>
+<!-- FOOTER (SHARED COMPONENT: Footer) -->
+<footer class="bg-surface-container text-on-surface-variant border-t border-outline-variant">
+<div class="w-full py-12 px-6 max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
+<!-- Brand & Mission Info -->
+<div class="space-y-3 max-w-md text-center md:text-left">
+<a class="inline-block" href="#">
+<img alt="RuralCare Logo" class="h-9 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1V0FQI2eM9nOW5WhwpDD5OHYSrXqvGhrjjMtRhjO4H7fLmjxdXGUtL_8Hv-A3LPlDq7Ij01rhaSR5Qb1fA1qf-sIYQXJtRk8ZoxBo--mNEKeQ9CqgG2CzKAMNMXennLRUvKyAPU_fdISY2Rmk2_CM35LATG3ZqlJ8_dUkorKQNdC6T3OArF9OHNntweQtqTLqGmTcTNN8aFlJjSLx9pnwOBbuXIS-eqDJb9BeloJT04mgXYwHRgu7EzUMg"/>
+</a>
+<p class="text-body-sm font-body-sm text-on-surface-variant leading-relaxed">
+          © 2024 RuralCare Health. Accessible, dignified healthcare for all communities. If you are experiencing a life-threatening medical crisis, please immediately dial 112 or visit your nearest emergency health center.
+        </p>
+</div>
+<!-- Legal & Protocol Links -->
+<div class="flex flex-wrap items-center justify-center md:justify-end gap-x-6 gap-y-3 text-label-sm font-label-sm">
+<a class="text-on-surface-variant hover:text-primary hover:underline transition-colors duration-150" href="#privacy">Privacy Policy</a>
+<a class="text-on-surface-variant hover:text-primary hover:underline transition-colors duration-150" href="#terms">Terms of Service</a>
+<a class="text-on-surface-variant hover:text-primary hover:underline transition-colors duration-150" href="#accessibility">Accessibility Statement</a>
+<a class="text-on-surface-variant hover:text-primary hover:underline transition-colors duration-150" href="#protocols">Clinical Protocols</a>
+<a class="text-on-surface-variant hover:text-primary hover:underline transition-colors duration-150" href="#support">Contact Support</a>
+</div>
+</div>
+</footer>
+<script>
+    // Simple interactive language toggle listener
+    const langSelector = document.getElementById('lang-select');
+    if (langSelector) {
+      langSelector.addEventListener('change', (e) => {
+        const langMap = {
+          'en': 'English',
+          'hi': 'Hindi (हिंदी)',
+          'ta': 'Tamil (தமிழ்)',
+          'bn': 'Bengali (বাংলা)'
+        };
+        console.log(`Switched interface language to: ${langMap[e.target.value]}`);
+      });
+    }
+  </script>
+</body></html>

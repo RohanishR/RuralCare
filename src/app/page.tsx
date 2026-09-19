@@ -1,6 +1,11 @@
+"use client";
+
 import Link from "next/link";
+import { useState } from "react";
 
 export default function Page() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [language, setLanguage] = useState("en");
   return (
     <>
       {/* Extracted from RuralCare_-_Landing_Page_72c00466a494458089af7d824645971f.html */}
@@ -37,7 +42,7 @@ export default function Page() {
           <a
             aria-label="RuralCare Home"
             className="flex items-center gap-2 group shrink-0"
-            href="#"
+            href="#home"
           >
             <img
               alt="RuralCare Logo"
@@ -92,6 +97,8 @@ export default function Page() {
                 translate
               </span>
               <select
+                value={language}
+                onChange={(event) => setLanguage(event.target.value)}
                 className="pl-8 pr-7 py-2 bg-surface-container-low border border-outline-variant rounded-lg text-on-surface text-label-sm font-label-sm hover:bg-surface-container focus:ring-2 focus:ring-primary focus:outline-none appearance-none cursor-pointer"
                 id="lang-select"
               >
@@ -123,6 +130,9 @@ export default function Page() {
               aria-label="Toggle navigation menu"
               className="md:hidden p-2 text-on-surface hover:bg-surface-container rounded-lg"
               type="button"
+              onClick={() => setMobileMenuOpen((isOpen) => !isOpen)}
+              aria-expanded={mobileMenuOpen}
+              aria-controls="mobile-drawer"
             >
               <span className="material-symbols-outlined text-[26px]">
                 menu
@@ -132,7 +142,7 @@ export default function Page() {
         </div>
         {/*  Mobile Navigation Drawer (Toggled)  */}
         <div
-          className="hidden md:hidden border-t border-outline-variant bg-surface px-6 py-4 space-y-3"
+          className={`${mobileMenuOpen ? "block" : "hidden"} md:hidden border-t border-outline-variant bg-surface px-6 py-4 space-y-3`}
           id="mobile-drawer"
         >
           <a
@@ -211,7 +221,7 @@ export default function Page() {
               <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
                 <a
                   className="min-h-13.5 px-8 py-3.5 bg-primary text-on-primary hover:bg-primary-container font-label-lg text-label-lg rounded-lg shadow-md hover:shadow-lg flex items-center justify-center gap-2.5 transition-all duration-200"
-                  href="#find-doctor"
+                  href="/find-doctor"
                 >
                   <span className="material-symbols-outlined text-[22px]">
                     search
@@ -817,7 +827,7 @@ export default function Page() {
                     </div>
                     <a
                       className="min-h-11 px-4 py-2 bg-primary text-on-primary hover:bg-primary-container rounded-lg font-label-md text-label-md shrink-0 transition-colors"
-                      href="#register-doctor"
+                      href="/register"
                     >
                       Join Network
                     </a>
@@ -853,7 +863,7 @@ export default function Page() {
             <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
               <a
                 className="w-full sm:w-auto min-h-13.5 px-8 py-3.5 bg-surface-container-lowest text-primary hover:bg-surface-container-low font-label-lg text-label-lg rounded-lg shadow-lg hover:shadow-xl font-bold transition-all duration-200 flex items-center justify-center gap-2"
-                href="#find-doctor"
+                href="/find-doctor"
               >
                 <span className="material-symbols-outlined text-[22px]">
                   search
@@ -862,7 +872,7 @@ export default function Page() {
               </a>
               <a
                 className="w-full sm:w-auto min-h-13.5 px-8 py-3.5 bg-transparent border-2 border-white text-white hover:bg-white/10 font-label-lg text-label-lg rounded-lg font-bold transition-colors duration-150 flex items-center justify-center gap-2"
-                href="#register-doctor"
+                href="/register"
               >
                 <span className="material-symbols-outlined text-[22px]">
                   stethoscope

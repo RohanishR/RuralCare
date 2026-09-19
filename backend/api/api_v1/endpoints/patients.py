@@ -14,7 +14,9 @@ async def get_patient_me(current_user: UserResponse = Depends(get_current_user))
     """
     Get the current user's patient profile.
     """
-    patient = await PatientModel.get_by_user_id(str(current_user["id"]))
+    if current_user.role != "patient":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only patients can access patient profiles")
+    patient = await PatientModel.get_by_user_id(current_user.id)
     if not patient:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -40,7 +42,9 @@ async def update_patient_me(
         if hasattr(update_data["emergency_contact"], "model_dump"):
             update_data["emergency_contact"] = update_data["emergency_contact"].model_dump()
             
-    patient = await PatientModel.update_by_user_id(str(current_user["id"]), update_data)
+    if current_user.role != "patient":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only patients can update patient profiles")
+    patient = await PatientModel.update_by_user_id(current_user.id, update_data)
     
     if not patient:
         raise HTTPException(
@@ -68,8 +72,8 @@ async def get_patient_by_id(
         )
         
     # Basic authorization check
-    is_owner = patient["user_id"] == str(current_user["id"])
-    is_doctor = current_user.get("role") in ["doctor", "admin"]
+    is_owner = patient["user_id"] == current_user.id
+    is_doctor = current_user.role in ["doctor", "admin"]
     
     if not (is_owner or is_doctor):
         raise HTTPException(
