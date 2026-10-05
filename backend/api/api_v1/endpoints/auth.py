@@ -13,6 +13,8 @@ router = APIRouter()
 
 @router.post("/register", response_model=UserResponse)
 async def register(user_in: UserCreate):
+    if user_in.role not in {"patient", "doctor"}:
+        raise HTTPException(status_code=403, detail="Public registration supports patient and doctor accounts only")
     existing_user = await UserModel.get_by_email(user_in.email)
     if existing_user:
         raise HTTPException(

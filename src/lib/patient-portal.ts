@@ -1,39 +1,90 @@
+import { apiClient } from "@/lib/api-client";
+
+export type AppointmentMode = "video" | "audio";
+
+export type AppointmentStatus =
+  | "pending"
+  | "confirmed"
+  | "completed"
+  | "cancelled"
+  | "rescheduled";
+
 export type Appointment = {
   id: string;
-  doctorName: string;
-  specialty: string;
-  date: string;
-  time: string;
-  mode: "video" | "audio";
-  status: "confirmed" | "cancelled";
+  patient_id: string;
+  doctor_id: string;
+
+  doctor_name?: string;
+  doctor_specialization?: string;
+
+  appointment_date: string;
+  appointment_time: string;
+
+  mode: AppointmentMode;
+  reason?: string | null;
+
+  status: AppointmentStatus;
+
+  consultation_fee?: number;
+
+  created_at: string;
+  updated_at: string;
 };
 
-const APPOINTMENTS_KEY = "ruralcare.patient.appointments";
+export type CreateAppointmentRequest = {
+  doctor_id: string;
+  appointment_date: string;
+  appointment_time: string;
+  mode: AppointmentMode;
+  reason?: string;
+};
 
-export function getAppointments(): Appointment[] {
-  if (typeof window === "undefined") return [];
+export type AppointmentListResponse = {
+  appointments: Appointment[];
+};
 
-  try {
-    const value = window.localStorage.getItem(APPOINTMENTS_KEY);
-    return value ? (JSON.parse(value) as Appointment[]) : [];
-  } catch {
-    return [];
-  }
+export async function createAppointment(
+  data: CreateAppointmentRequest,
+): Promise<Appointment> {
+  return apiClient.post<Appointment>(
+    "/appointments",
+    data,
+  );
 }
 
-export function saveAppointment(appointment: Appointment) {
-  const appointments = getAppointments();
-  window.localStorage.setItem(
-    APPOINTMENTS_KEY,
-    JSON.stringify([appointment, ...appointments]),
-  );
-  window.dispatchEvent(new Event("ruralcare:appointments-changed"));
+export async function getMyAppointments(): Promise<
+  Appointment[]
+> {
+  const response =
+    await apiClient.get<AppointmentListResponse>(
+      "/appointments/me",
+    );
+
+  return response.appointments;
 }
 
-export function cancelAppointment(id: string) {
-  const appointments = getAppointments().map((appointment) =>
-    appointment.id === id ? { ...appointment, status: "cancelled" as const } : appointment,
+export async function getAppointment(
+  appointmentId: string,
+): Promise<Appointment> {
+  return apiClient.get<Appointment>(
+    `/appointments/${appointmentId}`,
   );
-  window.localStorage.setItem(APPOINTMENTS_KEY, JSON.stringify(appointments));
-  window.dispatchEvent(new Event("ruralcare:appointments-changed"));
+}
+
+export async function cancelAppointment(
+  appointmentId: string,
+): Promise<Appointment> {
+  return apiClient.put<Appointment>(
+    `/appointments/${appointmentId}/cancel`,
+    {},
+  );
+}
+
+export async function completeAppointment(
+  appointmentId: string,
+): Promise<Appointment> {
+  return apiClient.put<Appointment>(
+    `/appointments/${appointmentId}/complete`,
+    {},
+  );
 }

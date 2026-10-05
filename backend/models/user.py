@@ -1,3 +1,4 @@
+import re
 from typing import Optional
 from datetime import datetime, timezone
 from bson import ObjectId
@@ -19,6 +20,13 @@ class UserModel:
             return await db[cls.collection_name].find_one({"_id": ObjectId(user_id)})
         except Exception:
             return None
+
+    @classmethod
+    async def get_ids_by_name(cls, name: str) -> list[str]:
+        users = await get_database()[cls.collection_name].find(
+            {"name": {"$regex": re.escape(name), "$options": "i"}}, {"_id": 1}
+        ).to_list(None)
+        return [str(user["_id"]) for user in users]
 
     @classmethod
     async def create(cls, user_data: dict) -> dict:
