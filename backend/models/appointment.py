@@ -1,88 +1,111 @@
-from datetime import date, datetime
-from enum import Enum
+from datetime import datetime, timezone
 from typing import Optional
 
-from pydantic import BaseModel, Field, field_validator
+from bson import ObjectId
+
+from backend.core.database import get_database
 
 
-class AppointmentMode(str, Enum):
-    video = "video"
-    audio = "audio"
-    chat = "chat"
+class AppointmentModel:
+    collection_name = "appointments"
 
-
-class AppointmentStatus(str, Enum):
-    pending = "pending"
-    confirmed = "confirmed"
-    completed = "completed"
-    cancelled = "cancelled"
-    rescheduled = "rescheduled"
-
-
-class AppointmentCreate(BaseModel):
-    doctor_id: str = Field(min_length=1)
-    appointment_date: date
-    appointment_time: str = Field(min_length=5, max_length=5)
-    mode: AppointmentMode
-    reason: Optional[str] = Field(default=None, max_length=1000)
-
-    @field_validator("appointment_time")
     @classmethod
-    def validate_time(cls, value: str) -> str:
-        try:
-            datetime.strptime(value, "%H:%M")
-        except ValueError:
-            raise ValueError("appointment_time must use HH:MM format")
-        return value
-
-
-class AppointmentUpdate(BaseModel):
-    appointment_date: Optional[date] = None
-    appointment_time: Optional[str] = Field(
-        default=None,
-        min_length=5,
-        max_length=5,
-    )
-    mode: Optional[AppointmentMode] = None
-    reason: Optional[str] = Field(default=None, max_length=1000)
-    status: Optional[AppointmentStatus] = None
-
-    @field_validator("appointment_time")
-    @classmethod
-    def validate_time(cls, value: Optional[str]) -> Optional[str]:
-        if value is None:
-            return value
+    async def get_by_id(
+        cls,
+        appointment_id: str,
+    ) -> Optional[dict]:
+        db = get_database()
 
         try:
-            datetime.strptime(value, "%H:%M")
-        except ValueError:
-            raise ValueError("appointment_time must use HH:MM format")
+            return await db[cls.collection_name].find_one(
+                {"_id": ObjectId(appointment_id)}
+            )
+        except Exception:
+            return None
 
-        return value
+    @classmethod
+    async def create(
+        cls,
+        appointment_data: dict,
+    ) -> dict:
+        db = get_database()
 
+        now = datetime.now(timezone.utc)
 
-class AppointmentResponse(BaseModel):
-    id: str
+        appointment_data["created_at"] = now
+        appointment_data["updated_at"] = now
 
-    patient_id: str
-    doctor_id: str
+        result = await db[cls.collection_name].insert_one(
+            appointment_data
+        )
 
-    doctor_name: Optional[str] = None
-    doctor_specialization: Optional[str] = None
+        return await cls.get_by_id(
+            str(result.inserted_id)
+        )
 
-    appointment_date: date
-    appointment_time: str
+    @classmethod
+    async def get_by_patient_id(
+        cls,
+        patient_id: str,
+    ) -> list[dict]:
+        db = get_database()
 
-    mode: AppointmentMode
-    reason: Optional[str] = None
+        cursor = db[cls.collection_name].find(
+            {"patient_id": patient_id}
+        ).sort("appointment_date", 1)
 
-    status: AppointmentStatus
+        return await cursor.to_list(length=100)
 
-    consultation_fee: Optional[float] = None
+    @classmethod
+    async def get_by_doctor_id(
+        cls,
+        doctor_id: str,
+    ) -> list[dict]:
+        db = get_database()
 
-    created_at: datetime
-    updated_at: datetime
+        cursor = db[cls.collection_name].find(
+            {"doctor_id": doctor_id}
+        ).sort("appointment_date", 1)
 
+        return await cursor.to_list(length=100)
 
-class AppointmentListResponse(BaseModel):
-    appointments: list[AppointmentResponse]
+    @classmethod
+    async def update(
+        cls,
+        appointment_id: str,
+        update_data: dict,
+    ) -> Optional[dict]:
+        db = get_database()
+
+        update_data["updated_at"] = datetime.now(
+            timezone.utc
+        )
+
+        try:
+            await db[cls.collection_name].update_one(
+                {"_id": ObjectId(appointment_id)},
+                {"$set": update_data},
+            )
+        except Exception:
+            return None
+
+        return await cls.get_by_id(appointment_id)
+
+    @classmethod
+    async def ensure_indexes(cls):
+        db = get_database()
+
+        await db[cls.collection_name].create_index(
+            "patient_id"
+        )
+
+        await db[cls.collection_name].create_index(
+            "doctor_id"
+        )
+
+        await db[cls.collection_name].create_index(
+            [
+                ("doctor_id", 1),
+                ("appointment_date", 1),
+            ]
+        )

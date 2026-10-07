@@ -12,7 +12,8 @@ class Settings(BaseSettings):
 
     GOOGLE_CLIENT_ID: str = ""
     GOOGLE_CLIENT_SECRET: str = ""
-
+    TRANSLATION_API_KEY: str = ""
+    
     model_config = SettingsConfigDict(
         env_file="backend/.env",
         env_file_encoding="utf-8",

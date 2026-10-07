@@ -2,26 +2,18 @@
 
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
+
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { LoadingState } from "@/components/ui/LoadingState";
-import { apiClient } from "@/lib/api-client";
-import { availabilitySummary, Doctor } from "@/lib/doctor";
-import {
-  createAppointment,
-  AppointmentMode,
-} from "@/lib/patient-portal";
-
-type DoctorListResponse = {
-  doctors: Doctor[];
-};
+import { apiClient, Doctor } from "@/lib/api-client";
 
 export default function FindDoctorPage() {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [query, setQuery] = useState("");
   const [specialization, setSpecialization] = useState("All");
   const [language, setLanguage] = useState("All");
-  const [maxFee, setMaxFee] = useState(500);
+  const [maxFee, setMaxFee] = useState(5000);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -33,52 +25,57 @@ export default function FindDoctorPage() {
 
   const specialties = useMemo(
     () =>
-      [
-        ...new Set(
-          doctors.map((doctor) => doctor.specialization),
-        ),
-      ].sort(),
+      [...new Set(doctors.map((doctor) => doctor.specialization))].sort(),
     [doctors],
   );
 
   const languages = useMemo(
     () =>
-      [
-        ...new Set(
-          doctors.flatMap((doctor) => doctor.languages),
-        ),
-      ].sort(),
+      [...new Set(doctors.flatMap((doctor) => doctor.languages))].sort(),
     [doctors],
   );
+
+  const filteredDoctors = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+
+    return doctors.filter((doctor) => {
+      const matchesQuery =
+        !normalizedQuery ||
+        doctor.full_name.toLowerCase().includes(normalizedQuery) ||
+        doctor.specialization.toLowerCase().includes(normalizedQuery) ||
+        doctor.qualification.toLowerCase().includes(normalizedQuery) ||
+        (doctor.location || "").toLowerCase().includes(normalizedQuery) ||
+        doctor.languages.some((item) =>
+          item.toLowerCase().includes(normalizedQuery),
+        );
+
+      const matchesSpecialization =
+        specialization === "All" ||
+        doctor.specialization === specialization;
+
+      const matchesLanguage =
+        language === "All" || doctor.languages.includes(language);
+
+      const matchesFee =
+        doctor.consultation_fee == null ||
+        doctor.consultation_fee <= maxFee;
+
+      return (
+        matchesQuery &&
+        matchesSpecialization &&
+        matchesLanguage &&
+        matchesFee
+      );
+    });
+  }, [doctors, query, specialization, language, maxFee]);
 
   const loadDoctors = async () => {
     setLoading(true);
     setError("");
 
-    const params = new URLSearchParams();
-
-    if (query.trim().length >= 2) {
-      params.set("search", query.trim());
-    }
-
-    if (specialization !== "All") {
-      params.set("specialization", specialization);
-    }
-
-    if (language !== "All") {
-      params.set("language", language);
-    }
-
-    params.set("max_fee", String(maxFee));
-
     try {
-      const queryString = params.toString();
-
-      const data = await apiClient.get<DoctorListResponse>(
-        queryString ? `/doctors?${queryString}` : "/doctors",
-      );
-
-      setDoctors(data.doctors);
+      const data = await apiClient.get<Doctor[]>("/doctors/");
+      setDoctors(data);
     } catch (requestError: unknown) {
       setError(
         requestError instanceof Error
@@ -91,37 +88,15 @@ export default function FindDoctorPage() {
   };
 
   useEffect(() => {
-    const timer = window.setTimeout(
-      loadDoctors,
-      query ? 350 : 0,
-    );
-
-    return () => window.clearTimeout(timer);
-  }, [query, specialization, language, maxFee]);
+    loadDoctors();
+  }, []);
 
   const resetFilters = () => {
     setQuery("");
     setSpecialization("All");
     setLanguage("All");
-    setMaxFee(500);
+    setMaxFee(5000);
   };
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-
-    const requestedSpecialization =
-      params.get("specialization");
-
-    const requestedLanguage = params.get("language");
-
-    if (requestedSpecialization) {
-      setSpecialization(requestedSpecialization);
-    }
-
-    if (requestedLanguage) {
-      setLanguage(requestedLanguage);
-    }
-  }, []);
 
   const openBooking = (doctor: Doctor) => {
     setSelectedDoctor(doctor);
@@ -141,9 +116,7 @@ export default function FindDoctorPage() {
   ) => {
     event.preventDefault();
 
-    if (!selectedDoctor) {
-      return;
-    }
+    if (!selectedDoctor) return;
 
     setBooking(true);
     setBookingError("");
@@ -159,31 +132,33 @@ export default function FindDoctorPage() {
       formData.get("time") || "",
     );
 
-    const mode =
-      String(
-        formData.get("mode") || "video",
-      ) as AppointmentMode;
-
     const reason = String(
       formData.get("reason") || "",
     ).trim();
 
+    if (!appointmentDate || !appointmentTime) {
+      setBookingError("Please select a date and time.");
+      setBooking(false);
+      return;
+    }
+
+    const appointmentDateTime = `${appointmentDate}T${appointmentTime}:00`;
+
     try {
-      await createAppointment({
+      await apiClient.createAppointment({
         doctor_id: selectedDoctor.id,
-        appointment_date: appointmentDate,
-        appointment_time: appointmentTime,
-        mode,
-        reason: reason.length > 0 ? reason : undefined,
+        appointment_date: appointmentDateTime,
+        reason:
+          reason.length > 0
+            ? reason
+            : "General consultation",
       });
 
       setBookingSuccess(
-        `Your appointment with Dr. ${selectedDoctor.name} has been confirmed.`,
+        `Your appointment with Dr. ${selectedDoctor.full_name} has been booked successfully.`,
       );
 
       setSelectedDoctor(null);
-
-      await loadDoctors();
     } catch (requestError: unknown) {
       setBookingError(
         requestError instanceof Error
@@ -239,9 +214,8 @@ export default function FindDoctorPage() {
         </h1>
 
         <p className="mt-2 max-w-2xl text-on-surface-variant">
-          Search approved clinicians and view their
-          qualifications, availability, and consultation
-          fees.
+          Search approved clinicians and view their qualifications,
+          availability, and consultation fees.
         </p>
 
         {bookingSuccess && (
@@ -280,11 +254,6 @@ export default function FindDoctorPage() {
               >
                 <option>All</option>
 
-                {specialization !== "All" &&
-                  !specialties.includes(specialization) && (
-                    <option>{specialization}</option>
-                  )}
-
                 {specialties.map((value) => (
                   <option key={value} value={value}>
                     {value}
@@ -304,11 +273,6 @@ export default function FindDoctorPage() {
                 className="mt-1 w-full rounded-lg border border-outline-variant bg-surface p-3"
               >
                 <option>All</option>
-
-                {language !== "All" &&
-                  !languages.includes(language) && (
-                    <option>{language}</option>
-                  )}
 
                 {languages.map((value) => (
                   <option key={value} value={value}>
@@ -357,7 +321,7 @@ export default function FindDoctorPage() {
                 onChange={(event) =>
                   setQuery(event.target.value)
                 }
-                placeholder="Search by specialty, qualification, location, or language"
+                placeholder="Search by name, specialty, qualification, location, or language"
                 className="w-full rounded-xl border border-outline-variant bg-surface-container-lowest py-3 pl-11 pr-4"
               />
             </label>
@@ -370,7 +334,7 @@ export default function FindDoctorPage() {
                 message={error}
                 onRetry={loadDoctors}
               />
-            ) : doctors.length === 0 ? (
+            ) : filteredDoctors.length === 0 ? (
               <EmptyState
                 title="No doctors found"
                 description="Try widening your search or changing the filters."
@@ -380,13 +344,13 @@ export default function FindDoctorPage() {
             ) : (
               <>
                 <p className="my-5 text-sm text-on-surface-variant">
-                  {doctors.length} doctor
-                  {doctors.length === 1 ? "" : "s"}{" "}
+                  {filteredDoctors.length} doctor
+                  {filteredDoctors.length === 1 ? "" : "s"}{" "}
                   available for your preferences
                 </p>
 
                 <div className="space-y-4">
-                  {doctors.map((doctor) => (
+                  {filteredDoctors.map((doctor) => (
                     <article
                       key={doctor.id}
                       className="rounded-xl border border-outline-variant bg-surface-container-lowest p-5 shadow-sm"
@@ -395,7 +359,7 @@ export default function FindDoctorPage() {
                         <div>
                           <div className="flex flex-wrap items-center gap-2">
                             <h2 className="text-xl font-bold text-on-surface">
-                              Dr. {doctor.name}
+                              Dr. {doctor.full_name}
                             </h2>
 
                             <span className="rounded bg-tertiary-fixed px-2 py-0.5 text-xs font-bold text-on-tertiary-fixed-variant">
@@ -409,8 +373,20 @@ export default function FindDoctorPage() {
 
                           <p className="mt-1 text-sm text-on-surface-variant">
                             {doctor.qualification} ·{" "}
-                            {doctor.experience} years experience
+                            {doctor.experience_years} years experience
                           </p>
+
+                          {doctor.hospital && (
+                            <p className="mt-2 text-sm text-on-surface-variant">
+                              {doctor.hospital}
+                            </p>
+                          )}
+
+                          {doctor.location && (
+                            <p className="mt-1 text-sm text-on-surface-variant">
+                              {doctor.location}
+                            </p>
+                          )}
 
                           <p className="mt-3 text-sm text-on-surface-variant">
                             {doctor.languages.join(" · ")}
@@ -420,15 +396,17 @@ export default function FindDoctorPage() {
                             <span className="font-semibold text-tertiary">
                               Availability:
                             </span>{" "}
-                            {availabilitySummary(
-                              doctor.availability,
-                            )}
+                            {doctor.is_available
+                              ? "Available"
+                              : "Currently unavailable"}
                           </p>
                         </div>
 
                         <div className="flex shrink-0 flex-col justify-between gap-4 sm:items-end">
                           <p className="text-xl font-bold text-primary">
-                            ₹{doctor.consultation_fee}
+                            {doctor.consultation_fee != null
+                              ? `₹${doctor.consultation_fee}`
+                              : "Fee not listed"}
                           </p>
 
                           <div className="flex flex-col gap-2 sm:items-end">
@@ -441,10 +419,11 @@ export default function FindDoctorPage() {
 
                             <button
                               type="button"
+                              disabled={!doctor.is_available}
                               onClick={() =>
                                 openBooking(doctor)
                               }
-                              className="rounded-lg bg-primary px-5 py-3 text-center font-semibold text-on-primary hover:bg-primary-container"
+                              className="rounded-lg bg-primary px-5 py-3 text-center font-semibold text-on-primary hover:bg-primary-container disabled:cursor-not-allowed disabled:opacity-50"
                             >
                               Book appointment
                             </button>
@@ -478,7 +457,7 @@ export default function FindDoctorPage() {
                 </h2>
 
                 <p className="mt-1 text-primary">
-                  Dr. {selectedDoctor.name}
+                  Dr. {selectedDoctor.full_name}
                 </p>
 
                 <p className="mt-1 text-sm text-on-surface-variant">
@@ -503,15 +482,17 @@ export default function FindDoctorPage() {
               <p>
                 Consultation fee:{" "}
                 <strong>
-                  ₹{selectedDoctor.consultation_fee}
+                  {selectedDoctor.consultation_fee != null
+                    ? `₹${selectedDoctor.consultation_fee}`
+                    : "Not listed"}
                 </strong>
               </p>
 
               <p className="mt-1">
                 Availability:{" "}
-                {availabilitySummary(
-                  selectedDoctor.availability,
-                )}
+                {selectedDoctor.is_available
+                  ? "Available"
+                  : "Currently unavailable"}
               </p>
             </div>
 
@@ -561,59 +542,7 @@ export default function FindDoctorPage() {
                   type="time"
                   className="mt-1 w-full rounded-lg border border-outline-variant bg-surface p-3"
                 />
-
-                <p className="mt-1 text-xs text-on-surface-variant">
-                  The server will verify that the selected
-                  time falls within the doctor&apos;s
-                  availability.
-                </p>
               </div>
-
-              <fieldset>
-                <legend className="text-sm font-medium text-on-surface">
-                  Consultation type
-                </legend>
-
-                <div className="mt-2 grid gap-3 sm:grid-cols-2">
-                  <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-outline-variant p-3 hover:bg-surface-container">
-                    <input
-                      defaultChecked
-                      name="mode"
-                      type="radio"
-                      value="video"
-                    />
-
-                    <span>
-                      <span className="block font-semibold text-on-surface">
-                        Video consultation
-                      </span>
-
-                      <span className="text-xs text-on-surface-variant">
-                        Video will be available in the
-                        consultation module.
-                      </span>
-                    </span>
-                  </label>
-
-                  <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-outline-variant p-3 hover:bg-surface-container">
-                    <input
-                      name="mode"
-                      type="radio"
-                      value="audio"
-                    />
-
-                    <span>
-                      <span className="block font-semibold text-on-surface">
-                        Audio only
-                      </span>
-
-                      <span className="text-xs text-on-surface-variant">
-                        Audio-only consultation.
-                      </span>
-                    </span>
-                  </label>
-                </div>
-              </fieldset>
 
               <div>
                 <label
@@ -627,13 +556,13 @@ export default function FindDoctorPage() {
                   id="appointment-reason"
                   name="reason"
                   rows={4}
-                  maxLength={500}
+                  maxLength={1000}
                   placeholder="Briefly describe why you need a consultation..."
                   className="mt-1 w-full resize-none rounded-lg border border-outline-variant bg-surface p-3"
                 />
 
                 <p className="mt-1 text-xs text-on-surface-variant">
-                  Maximum 500 characters.
+                  Maximum 1000 characters.
                 </p>
               </div>
 
@@ -653,7 +582,7 @@ export default function FindDoctorPage() {
                   className="rounded-lg bg-primary px-5 py-3 font-semibold text-on-primary hover:bg-primary-container disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {booking
-                    ? "Confirming..."
+                    ? "Booking..."
                     : "Confirm appointment"}
                 </button>
               </div>

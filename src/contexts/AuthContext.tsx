@@ -37,44 +37,64 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
-  useEffect(() => {
-    const initAuth = async () => {
-      const token = Cookies.get("access_token");
-      if (token) {
-        try {
-          const decoded: any = jwtDecode(token);
-          if (decoded.exp * 1000 < Date.now()) {
-            logout();
-          } else {
-            await refetchUser();
-          }
-        } catch (e) {
-          logout();
-        }
-      }
-      setIsLoading(false);
-    };
-    initAuth();
-  }, []);
-
-  const login = (token: string, userData: User) => {
-    Cookies.set("access_token", token, { expires: 1 }); // 1 day expiration
-    setUser(userData);
-  };
-
   const logout = () => {
-    Cookies.remove("access_token");
+    Cookies.remove("access_token", { path: "/" });
+
     setUser(null);
-    router.push("/login");
+
+    router.replace("/login");
   };
 
   const refetchUser = async () => {
     try {
       const userData = await apiClient.get<User>("/auth/me");
       setUser(userData);
-    } catch (e) {
-      logout();
+    } catch {
+      Cookies.remove("access_token", { path: "/" });
+      setUser(null);
+      router.replace("/login");
     }
+  };
+
+  useEffect(() => {
+    const initAuth = async () => {
+      const token = Cookies.get("access_token");
+
+      if (!token) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const decoded: { exp?: number } = jwtDecode(token);
+
+        if (!decoded.exp || decoded.exp * 1000 <= Date.now()) {
+          Cookies.remove("access_token", { path: "/" });
+          setUser(null);
+          router.replace("/login");
+          return;
+        }
+
+        await refetchUser();
+      } catch {
+        Cookies.remove("access_token", { path: "/" });
+        setUser(null);
+        router.replace("/login");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    initAuth();
+  }, []);
+
+  const login = (token: string, userData: User) => {
+    Cookies.set("access_token", token, {
+      expires: 1,
+      path: "/",
+    });
+
+    setUser(userData);
   };
 
   return (
@@ -95,8 +115,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
+
   if (context === undefined) {
     throw new Error("useAuth must be used within an AuthProvider");
   }
+
   return context;
 }

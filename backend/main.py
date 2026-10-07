@@ -4,8 +4,14 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.api.api_v1.api import api_router
+from backend.api.api_v1.endpoints.consultation import (
+    router as consultation_router,
+)
 from backend.core.config import settings
-from backend.core.database import connect_to_mongo, close_mongo_connection
+from backend.core.database import (
+    close_mongo_connection,
+    connect_to_mongo,
+)
 
 
 @asynccontextmanager
@@ -14,9 +20,13 @@ async def lifespan(app: FastAPI):
 
     from backend.models.user import UserModel
     from backend.models.patient import PatientModel
+    from backend.models.doctor import DoctorModel
+    from backend.models.appointment import AppointmentModel
 
     await UserModel.ensure_indexes()
     await PatientModel.ensure_indexes()
+    await DoctorModel.ensure_indexes()
+    await AppointmentModel.ensure_indexes()
 
     yield
 
@@ -40,9 +50,16 @@ app.add_middleware(
 )
 
 
+# REST API
 app.include_router(
     api_router,
     prefix="/api/v1",
+)
+
+
+# WebRTC consultation signaling
+app.include_router(
+    consultation_router,
 )
 
 
