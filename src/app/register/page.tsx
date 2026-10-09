@@ -176,7 +176,6 @@ function RegistrationForm() {
           <GoogleLogin
             onSuccess={handleGoogleSuccess}
             onError={() => setError("Google Signup Failed")}
-            useOneTap
           />
         </div>
 

@@ -52,10 +52,11 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
 @router.post("/google", response_model=Token)
 async def google_auth(login_data: GoogleLogin):
     try:
+        audience = settings.GOOGLE_CLIENT_ID.strip() if settings.GOOGLE_CLIENT_ID else None
         idinfo = id_token.verify_oauth2_token(
-            login_data.credential, requests.Request(), settings.GOOGLE_CLIENT_ID
+            login_data.credential, requests.Request(), audience=audience
         )
-    except ValueError as e:
+    except Exception as e:
         print(f"Google Auth Error: {str(e)}")
         raise HTTPException(status_code=400, detail=f"Invalid Google Token: {str(e)}")
         

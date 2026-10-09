@@ -63,8 +63,23 @@ async def close_mongo_connection():
     logger.info("MongoDB connection closed.")
 
 
-def get_database():
+def get_client() -> AsyncIOMotorClient:
     if db.client is None:
-        raise RuntimeError("Database connection has not been initialized.")
+        client_kwargs = {"serverSelectionTimeoutMS": 5000}
+        if "mongodb+srv://" in settings.MONGODB_URI:
+            try:
+                import certifi
+                client_kwargs["tlsCAFile"] = certifi.where()
+            except ImportError:
+                pass
 
-    return db.client[settings.DATABASE_NAME]
+        db.client = AsyncIOMotorClient(
+            settings.MONGODB_URI,
+            **client_kwargs,
+        )
+    return db.client
+
+
+def get_database():
+    client = get_client()
+    return client[settings.DATABASE_NAME]
