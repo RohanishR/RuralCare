@@ -179,7 +179,13 @@ export default function ConsultationPage() {
   useEffect(() => {
     if (!appointmentId) return;
 
-    const signalingUrl = new URL(process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1");
+    const getBaseUrl = () => {
+      if (typeof window !== "undefined") {
+        return window.location.origin;
+      }
+      return process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+    };
+    const signalingUrl = new URL(getBaseUrl());
     signalingUrl.protocol = signalingUrl.protocol === "https:" ? "wss:" : "ws:";
     signalingUrl.pathname = `/ws/${encodeURIComponent(appointmentId)}`;
     

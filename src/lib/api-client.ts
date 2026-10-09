@@ -1,7 +1,17 @@
 import Cookies from "js-cookie";
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+const getApiUrl = () => {
+  if (typeof window !== "undefined") {
+    // Relative path for client-side fetches (relies on Vercel rewrites)
+    return "/api/v1";
+  }
+  // Server-side fetching using Vercel internal service bindings
+  if (process.env.BACKEND_URL) {
+    return `${process.env.BACKEND_URL}/api/v1`;
+  }
+  return process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+};
+const API_URL = getApiUrl();
 
 export class ApiError extends Error {
   constructor(message: string, public status: number) {
