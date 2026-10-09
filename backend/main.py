@@ -24,6 +24,7 @@ async def lifespan(app: FastAPI):
     from backend.models.appointment import AppointmentModel
     from backend.models.medical_record import MedicalRecordModel
     from backend.models.prescription import PrescriptionModel
+    from backend.models.notification import NotificationModel
 
     await UserModel.ensure_indexes()
     await PatientModel.ensure_indexes()
@@ -31,6 +32,7 @@ async def lifespan(app: FastAPI):
     await AppointmentModel.ensure_indexes()
     await MedicalRecordModel.ensure_indexes()
     await PrescriptionModel.ensure_indexes()
+    await NotificationModel.ensure_indexes()
 
     yield
 

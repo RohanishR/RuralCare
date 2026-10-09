@@ -7,6 +7,12 @@ class NotificationModel:
     collection_name = "notifications"
 
     @classmethod
+    async def ensure_indexes(cls):
+        import pymongo
+        db = get_database()
+        await db[cls.collection_name].create_index([("user_id", pymongo.ASCENDING)])
+
+    @classmethod
     async def create(cls, user_id: str, data: dict) -> dict:
         db = get_database()
         notification_data = {
