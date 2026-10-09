@@ -1,5 +1,6 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
+import jwt
 from typing import Optional
 
 from backend.core.security import decode_access_token
@@ -14,7 +15,10 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> UserResponse:
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    payload = decode_access_token(token)
+    try:
+        payload = decode_access_token(token)
+    except jwt.PyJWTError:
+        raise credentials_exception
     if payload is None:
         raise credentials_exception
     

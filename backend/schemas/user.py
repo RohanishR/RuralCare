@@ -9,7 +9,7 @@ class UserBase(BaseModel):
     profile_image: Optional[str] = None
 
 class UserCreate(UserBase):
-    password: str
+    password: str = Field(min_length=12, max_length=128)
 
 class GoogleUserCreate(UserBase):
     auth_provider: str = "google"

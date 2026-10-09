@@ -4,9 +4,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
   Appointment,
-  cancelAppointment,
-  getAppointments,
-} from "@/lib/patient-portal";
+  apiClient,
+} from "@/lib/api-client";
 
 export default function DoctorAppointmentsPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -18,7 +17,7 @@ export default function DoctorAppointmentsPage() {
       setLoading(true);
       setError("");
 
-      const data = await getAppointments();
+      const data = await apiClient.getDoctorAppointments();
       setAppointments(data);
     } catch (err) {
       setError(
@@ -45,7 +44,7 @@ export default function DoctorAppointmentsPage() {
     }
 
     try {
-      await cancelAppointment(id);
+      await apiClient.updateAppointment(id, { status: "cancelled" });
       await loadAppointments();
     } catch (err) {
       setError(
@@ -113,7 +112,7 @@ export default function DoctorAppointmentsPage() {
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
                     <h2 className="text-xl font-bold text-on-surface">
-                      {appointment.patient_name}
+                      Patient consultation
                     </h2>
 
                     <span className="rounded-full bg-tertiary-fixed px-2 py-1 text-xs font-bold text-on-tertiary-fixed-variant">
@@ -122,14 +121,7 @@ export default function DoctorAppointmentsPage() {
                   </div>
 
                   <p className="mt-2 text-sm text-on-surface-variant">
-                    {appointment.appointment_date} at{" "}
-                    {appointment.appointment_time}
-                  </p>
-
-                  <p className="mt-1 text-sm text-on-surface-variant">
-                    {appointment.mode === "audio"
-                      ? "Audio consultation"
-                      : "Video consultation"}
+                    {new Date(appointment.appointment_date).toLocaleString()}
                   </p>
 
                   {appointment.reason && (

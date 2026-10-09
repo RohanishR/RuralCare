@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 
-from backend.core.security import get_current_user
+from backend.api.deps import get_current_user
 from backend.schemas.symptom import SymptomRequest, SymptomResponse
 from backend.services.ai_service import analyze_symptoms
 

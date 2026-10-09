@@ -17,6 +17,7 @@ export interface Doctor {
   languages: string[];
   bio?: string | null;
   is_available: boolean;
+  verification_status: "pending" | "approved" | "rejected";
   created_at: string;
   updated_at: string;
 }
@@ -28,6 +29,7 @@ export interface Appointment {
   appointment_date: string;
   reason: string;
   status: "pending" | "confirmed" | "completed" | "cancelled";
+  notes?: string;
   created_at: string;
   updated_at: string;
 }
@@ -42,7 +44,13 @@ export interface UpdateAppointmentData {
   status?: "pending" | "confirmed" | "completed" | "cancelled";
   appointment_date?: string;
   reason?: string;
+  notes?: string;
 }
+
+export type DoctorProfileInput = Omit<
+  Doctor,
+  "id" | "user_id" | "created_at" | "updated_at" | "verification_status"
+>;
 
 class ApiClient {
   private async request<T>(
@@ -137,6 +145,18 @@ class ApiClient {
   }
 
   // =========================
+  // Admin
+  // =========================
+
+  async getAllDoctorsAdmin(): Promise<Doctor[]> {
+    return this.get<Doctor[]>("/admin/doctors");
+  }
+
+  async verifyDoctor(doctorId: string, status: "pending" | "approved" | "rejected"): Promise<Doctor> {
+    return this.patch<Doctor>(`/admin/doctors/${doctorId}/verify`, { status });
+  }
+
+  // =========================
   // Doctors
   // =========================
 
@@ -153,10 +173,7 @@ class ApiClient {
   }
 
   async updateMyDoctorProfile(
-    data: Omit<
-      Doctor,
-      "id" | "user_id" | "created_at" | "updated_at"
-    >,
+    data: Partial<DoctorProfileInput>,
   ): Promise<Doctor> {
     return this.put<Doctor>("/doctors/me", data);
   }
@@ -210,8 +227,7 @@ export interface MedicalRecord {
 }
 
 export interface MedicalRecordCreate {
-  patient_id: string;
-  appointment_id?: string | null;
+  appointment_id: string;
   diagnosis: string;
   symptoms: string;
   notes?: string;
@@ -248,8 +264,7 @@ export interface Prescription {
 }
 
 export interface PrescriptionCreate {
-  patient_id: string;
-  appointment_id?: string | null;
+  appointment_id: string;
   medicine: string;
   dosage: string;
   frequency: string;
@@ -267,4 +282,30 @@ export async function createPrescription(
   data: PrescriptionCreate,
 ): Promise<Prescription> {
   return apiClient.post("/prescriptions/", data);
+}
+
+// =========================
+// Notifications
+// =========================
+
+export interface Notification {
+  id: string;
+  user_id: string;
+  title: string;
+  message: string;
+  type: string;
+  read: boolean;
+  created_at: string;
+}
+
+export async function getNotifications(): Promise<Notification[]> {
+  return apiClient.get("/notifications/");
+}
+
+export async function markNotificationAsRead(id: string): Promise<Notification> {
+  return apiClient.put(`/notifications/${id}/read`);
+}
+
+export async function markAllNotificationsAsRead(): Promise<{status: string; modified_count: number}> {
+  return apiClient.put("/notifications/read-all");
 }

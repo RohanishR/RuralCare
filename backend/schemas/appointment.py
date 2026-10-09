@@ -24,12 +24,7 @@ class AppointmentCreate(BaseModel):
 
 class AppointmentUpdate(BaseModel):
     status: Optional[AppointmentStatus] = None
-    appointment_date: Optional[datetime] = None
-    reason: Optional[str] = Field(
-        default=None,
-        min_length=2,
-        max_length=1000,
-    )
+    notes: Optional[str] = None
 
 
 class AppointmentResponse(BaseModel):
@@ -39,6 +34,7 @@ class AppointmentResponse(BaseModel):
     appointment_date: datetime
     reason: str
     status: AppointmentStatus
+    notes: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 

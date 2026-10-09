@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     DATABASE_NAME: str = "ruralcare"
     FRONTEND_URL: str = "http://localhost:3000"
 
-    SECRET_KEY: str = "ruralcare-development-secret-key-change-in-production"
+    SECRET_KEY: str
 
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
 

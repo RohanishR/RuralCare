@@ -1,6 +1,8 @@
+import asyncio
+
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from backend.core.security import get_current_user
+from backend.api.deps import get_current_user
 from backend.schemas.translation import (
     TranslationRequest,
     TranslationResponse,
@@ -29,10 +31,11 @@ async def translate(
         )
 
     try:
-        translated_text = translate_text(
-            text=request.text,
-            source_language=request.source_language,
-            target_language=request.target_language,
+        translated_text = await asyncio.to_thread(
+            translate_text,
+            request.text,
+            request.source_language,
+            request.target_language,
         )
     except RuntimeError as exc:
         raise HTTPException(

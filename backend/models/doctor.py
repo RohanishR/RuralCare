@@ -75,10 +75,10 @@ class DoctorModel:
         return await cls.get_by_user_id(user_id)
 
     @classmethod
-    async def get_all(cls) -> list[dict]:
+    async def get_all(cls, query: dict = None) -> list[dict]:
         db = get_database()
 
-        cursor = db[cls.collection_name].find({})
+        cursor = db[cls.collection_name].find(query or {})
 
         return await cursor.to_list(length=100)
 

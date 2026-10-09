@@ -15,9 +15,9 @@ class PatientBase(BaseModel):
     location: Optional[str] = None
     preferred_language: Optional[str] = "English"
     blood_group: Optional[str] = None
-    allergies: Optional[List[str]] = []
-    existing_medical_conditions: Optional[List[str]] = []
-    current_medications: Optional[List[str]] = []
+    allergies: List[str] = Field(default_factory=list)
+    existing_medical_conditions: List[str] = Field(default_factory=list)
+    current_medications: List[str] = Field(default_factory=list)
     emergency_contact: Optional[EmergencyContact] = None
 
 class PatientCreate(PatientBase):

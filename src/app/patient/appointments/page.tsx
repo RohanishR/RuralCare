@@ -25,7 +25,11 @@ export default function AppointmentsPage() {
         apiClient.getDoctors(),
       ]);
 
-      setAppointments(appointmentData);
+      setAppointments(
+        appointmentData.filter(
+          (app) => app.status !== "cancelled" && app.status !== "completed"
+        )
+      );
       setDoctors(doctorData);
     } catch (err) {
       setError(
@@ -227,23 +231,33 @@ export default function AppointmentsPage() {
                     </p>
                   </div>
 
-                  {["pending", "confirmed"].includes(
-                    appointment.status,
-                  ) && (
-                    <button
-                      onClick={() =>
-                        handleCancel(appointment.id)
-                      }
-                      disabled={
-                        cancelling === appointment.id
-                      }
-                      className="rounded-lg border border-error px-4 py-2 font-semibold text-error hover:bg-error-container disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {cancelling === appointment.id
-                        ? "Cancelling..."
-                        : "Cancel appointment"}
-                    </button>
-                  )}
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    {appointment.status === "confirmed" && (
+                      <Link
+                        href={`/consultation/${appointment.id}`}
+                        className="rounded-lg bg-blue-600 px-4 py-2 text-center font-semibold text-white hover:bg-blue-700"
+                      >
+                        Join Video Call
+                      </Link>
+                    )}
+                    {["pending", "confirmed"].includes(
+                      appointment.status,
+                    ) && (
+                      <button
+                        onClick={() =>
+                          handleCancel(appointment.id)
+                        }
+                        disabled={
+                          cancelling === appointment.id
+                        }
+                        className="rounded-lg border border-error px-4 py-2 font-semibold text-error hover:bg-error-container disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {cancelling === appointment.id
+                          ? "Cancelling..."
+                          : "Cancel appointment"}
+                      </button>
+                    )}
+                  </div>
                 </div>
               </article>
             );

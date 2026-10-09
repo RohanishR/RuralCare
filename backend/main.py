@@ -22,11 +22,15 @@ async def lifespan(app: FastAPI):
     from backend.models.patient import PatientModel
     from backend.models.doctor import DoctorModel
     from backend.models.appointment import AppointmentModel
+    from backend.models.medical_record import MedicalRecordModel
+    from backend.models.prescription import PrescriptionModel
 
     await UserModel.ensure_indexes()
     await PatientModel.ensure_indexes()
     await DoctorModel.ensure_indexes()
     await AppointmentModel.ensure_indexes()
+    await MedicalRecordModel.ensure_indexes()
+    await PrescriptionModel.ensure_indexes()
 
     yield
 

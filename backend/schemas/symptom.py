@@ -9,11 +9,11 @@ class SymptomRequest(BaseModel):
         min_length=3,
         max_length=2000,
     )
-    language: str = "en"
+    language: Literal["en", "hi", "ta"] = "en"
 
 
 class SymptomAnalysis(BaseModel):
-    possible_conditions: List[str]
+    discussion_points: List[str]
     urgency: Literal["low", "medium", "high", "emergency"]
     recommendation: str
     warning_signs: List[str]
@@ -21,5 +21,5 @@ class SymptomAnalysis(BaseModel):
 
 class SymptomResponse(BaseModel):
     symptoms: str
-    language: str
+    language: Literal["en", "hi", "ta"]
     analysis: SymptomAnalysis

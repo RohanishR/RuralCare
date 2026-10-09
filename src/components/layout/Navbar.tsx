@@ -41,7 +41,7 @@ export const Navbar: React.FC = () => {
             Find a Doctor
           </Link>
           <Link
-            href="/appointments"
+            href="/patient/appointments"
             className="hover:text-primary transition-colors"
           >
             Appointments

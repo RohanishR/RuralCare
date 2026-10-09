@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Cookies from "js-cookie";
+import { useAuth } from "@/contexts/AuthContext";
+import { Mic, MicOff, Video, VideoOff, PhoneOff, Send, Save } from "lucide-react";
 
 type SignalMessage = {
   type: string;
@@ -10,9 +13,17 @@ type SignalMessage = {
   candidate?: RTCIceCandidateInit;
 };
 
+type ChatMessage = {
+  sender: string;
+  text: string;
+  time: string;
+};
+
 export default function ConsultationPage() {
   const params = useParams();
   const router = useRouter();
+  const { user } = useAuth();
+  const isDoctor = user?.role === "doctor";
 
   const appointmentId = params.appointmentId as string;
 
@@ -22,19 +33,45 @@ export default function ConsultationPage() {
   const socketRef = useRef<WebSocket | null>(null);
   const peerRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
+  const dataChannelRef = useRef<RTCDataChannel | null>(null);
+  const pendingCandidatesRef = useRef<RTCIceCandidateInit[]>([]);
 
   const [connected, setConnected] = useState(false);
+  const [peerReady, setPeerReady] = useState(false);
   const [callStarted, setCallStarted] = useState(false);
   const [muted, setMuted] = useState(false);
   const [cameraOff, setCameraOff] = useState(false);
   const [error, setError] = useState("");
 
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatInput, setChatInput] = useState("");
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+
+  const [notes, setNotes] = useState("");
+  const [savingNotes, setSavingNotes] = useState(false);
+
+  // Auto-scroll chat
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, [chatMessages]);
+
   const sendSignal = useCallback((message: SignalMessage) => {
     const socket = socketRef.current;
-
     if (socket && socket.readyState === WebSocket.OPEN) {
       socket.send(JSON.stringify(message));
     }
+  }, []);
+
+  const setupDataChannel = useCallback((channel: RTCDataChannel) => {
+    dataChannelRef.current = channel;
+    channel.onmessage = (event) => {
+      const msg = JSON.parse(event.data);
+      setChatMessages((prev) => [...prev, { sender: "Remote", text: msg.text, time: msg.time }]);
+    };
+    channel.onopen = () => console.log("Data channel open");
+    channel.onclose = () => console.log("Data channel closed");
   }, []);
 
   const createPeerConnection = useCallback(() => {
@@ -43,43 +80,35 @@ export default function ConsultationPage() {
     }
 
     const peer = new RTCPeerConnection({
-      iceServers: [
-        {
-          urls: "stun:stun.l.google.com:19302",
-        },
-      ],
+      iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
     });
 
     peer.onicecandidate = (event) => {
       if (event.candidate) {
-        sendSignal({
-          type: "ice-candidate",
-          candidate: event.candidate.toJSON(),
-        });
+        sendSignal({ type: "ice-candidate", candidate: event.candidate.toJSON() });
       }
     };
 
     peer.ontrack = (event) => {
       const [remoteStream] = event.streams;
-
       if (remoteVideoRef.current && remoteStream) {
         remoteVideoRef.current.srcObject = remoteStream;
       }
     };
 
+    peer.ondatachannel = (event) => {
+      setupDataChannel(event.channel);
+    };
+
     peer.onconnectionstatechange = () => {
-      if (
-        peer.connectionState === "failed" ||
-        peer.connectionState === "disconnected"
-      ) {
+      if (peer.connectionState === "failed" || peer.connectionState === "disconnected") {
         setError("The consultation connection was lost.");
       }
     };
 
     peerRef.current = peer;
-
     return peer;
-  }, [sendSignal]);
+  }, [sendSignal, setupDataChannel]);
 
   const startLocalMedia = useCallback(async () => {
     if (localStreamRef.current) {
@@ -99,7 +128,6 @@ export default function ConsultationPage() {
       }
 
       const peer = createPeerConnection();
-
       stream.getTracks().forEach((track) => {
         peer.addTrack(track, stream);
       });
@@ -107,33 +135,43 @@ export default function ConsultationPage() {
       return stream;
     } catch (err) {
       console.error(err);
-
-      setError(
-        "Camera or microphone permission was denied or unavailable.",
-      );
-
+      setError("Camera or microphone permission was denied or unavailable.");
       return null;
     }
   }, [createPeerConnection]);
 
+  const flushPendingCandidates = useCallback(async (peer: RTCPeerConnection) => {
+    for (const candidate of pendingCandidatesRef.current.splice(0)) {
+      await peer.addIceCandidate(new RTCIceCandidate(candidate));
+    }
+  }, []);
+
+  const beginOffer = useCallback(async () => {
+    if (!peerReady || peerRef.current?.localDescription) return;
+    setError("");
+    const stream = await startLocalMedia();
+    if (!stream) return;
+    const peer = createPeerConnection();
+    const dc = peer.createDataChannel("chat");
+    setupDataChannel(dc);
+    const offer = await peer.createOffer();
+    await peer.setLocalDescription(offer);
+    sendSignal({ type: "offer", offer });
+  }, [createPeerConnection, peerReady, sendSignal, setupDataChannel, startLocalMedia]);
+
   useEffect(() => {
-    if (!appointmentId) {
+    if (!appointmentId) return;
+
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const host = process.env.NEXT_PUBLIC_API_URL?.replace(/^https?:\/\//, "").replace(/\/api\/v1$/, "") || "127.0.0.1:8000";
+    
+    const token = Cookies.get("access_token");
+    if (!token) {
+      setError("Please sign in before joining a consultation.");
       return;
     }
 
-    const protocol =
-      window.location.protocol === "https:" ? "wss:" : "ws:";
-
-    const host =
-      process.env.NEXT_PUBLIC_API_URL
-        ?.replace(/^https?:\/\//, "")
-        .replace(/\/api\/v1$/, "") ||
-      "127.0.0.1:8000";
-
-    const socket = new WebSocket(
-      `${protocol}//${host}/ws/${appointmentId}`,
-    );
-
+    const socket = new WebSocket(`${protocol}//${host}/ws/${appointmentId}?token=${encodeURIComponent(token)}`);
     socketRef.current = socket;
 
     socket.onopen = () => {
@@ -141,51 +179,44 @@ export default function ConsultationPage() {
       setError("");
     };
 
-    socket.onclose = () => {
-      setConnected(false);
-    };
-
-    socket.onerror = () => {
-      setError("Unable to connect to the consultation server.");
-    };
+    socket.onclose = () => setConnected(false);
+    socket.onerror = () => setError("Unable to connect to the consultation server.");
 
     socket.onmessage = async (event) => {
-      const message: SignalMessage = JSON.parse(event.data);
-
+      const message: any = JSON.parse(event.data);
+      if (message.error) {
+        setError(message.error);
+        return;
+      }
+      if (message.type === "peer-ready") {
+        setPeerReady(true);
+        return;
+      }
       const peer = createPeerConnection();
 
       if (message.type === "offer" && message.offer) {
-        await peer.setRemoteDescription(
-          new RTCSessionDescription(message.offer),
-        );
-
+        await peer.setRemoteDescription(new RTCSessionDescription(message.offer));
+        await flushPendingCandidates(peer);
         await startLocalMedia();
-
         const answer = await peer.createAnswer();
-
         await peer.setLocalDescription(answer);
-
-        sendSignal({
-          type: "answer",
-          answer,
-        });
-
+        sendSignal({ type: "answer", answer });
         setCallStarted(true);
       }
 
       if (message.type === "answer" && message.answer) {
-        await peer.setRemoteDescription(
-          new RTCSessionDescription(message.answer),
-        );
-
+        await peer.setRemoteDescription(new RTCSessionDescription(message.answer));
+        await flushPendingCandidates(peer);
         setCallStarted(true);
       }
 
       if (message.type === "ice-candidate" && message.candidate) {
         try {
-          await peer.addIceCandidate(
-            new RTCIceCandidate(message.candidate),
-          );
+          if (peer.remoteDescription) {
+            await peer.addIceCandidate(new RTCIceCandidate(message.candidate));
+          } else {
+            pendingCandidatesRef.current.push(message.candidate);
+          }
         } catch (err) {
           console.error("ICE candidate error:", err);
         }
@@ -194,198 +225,236 @@ export default function ConsultationPage() {
 
     return () => {
       socket.close();
-
       peerRef.current?.close();
-
-      localStreamRef.current?.getTracks().forEach((track) => {
-        track.stop();
-      });
-
-      socketRef.current = null;
-      peerRef.current = null;
-      localStreamRef.current = null;
+      localStreamRef.current?.getTracks().forEach((track) => track.stop());
     };
-  }, [
-    appointmentId,
-    createPeerConnection,
-    sendSignal,
-    startLocalMedia,
-  ]);
+  }, [appointmentId, createPeerConnection, flushPendingCandidates, sendSignal, startLocalMedia]);
 
   const startCall = async () => {
-    setError("");
-
-    const stream = await startLocalMedia();
-
-    if (!stream) {
-      return;
-    }
-
-    const peer = createPeerConnection();
-
-    const offer = await peer.createOffer();
-
-    await peer.setLocalDescription(offer);
-
-    sendSignal({
-      type: "offer",
-      offer,
-    });
-
-    setCallStarted(true);
+    await beginOffer();
   };
 
   const toggleMute = () => {
     const stream = localStreamRef.current;
-
-    if (!stream) {
-      return;
-    }
-
+    if (!stream) return;
     const audioTrack = stream.getAudioTracks()[0];
-
-    if (!audioTrack) {
-      return;
+    if (audioTrack) {
+      audioTrack.enabled = !audioTrack.enabled;
+      setMuted(!audioTrack.enabled);
     }
-
-    audioTrack.enabled = !audioTrack.enabled;
-    setMuted(!audioTrack.enabled);
   };
 
   const toggleCamera = () => {
     const stream = localStreamRef.current;
-
-    if (!stream) {
-      return;
-    }
-
+    if (!stream) return;
     const videoTrack = stream.getVideoTracks()[0];
-
-    if (!videoTrack) {
-      return;
+    if (videoTrack) {
+      videoTrack.enabled = !videoTrack.enabled;
+      setCameraOff(!videoTrack.enabled);
     }
-
-    videoTrack.enabled = !videoTrack.enabled;
-    setCameraOff(!videoTrack.enabled);
   };
 
   const endCall = () => {
     peerRef.current?.close();
-
-    localStreamRef.current?.getTracks().forEach((track) => {
-      track.stop();
-    });
-
+    localStreamRef.current?.getTracks().forEach((track) => track.stop());
     socketRef.current?.close();
-
     router.back();
   };
 
+  const sendChatMessage = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (chatInput.trim() && dataChannelRef.current?.readyState === "open") {
+      const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const msg = { text: chatInput, time };
+      dataChannelRef.current.send(JSON.stringify(msg));
+      setChatMessages((prev) => [...prev, { sender: "You", ...msg }]);
+      setChatInput("");
+    }
+  };
+
+  const saveNotes = async () => {
+    if (!appointmentId) return;
+    setSavingNotes(true);
+    try {
+      setError("Consultation notes are not saved from this call screen yet.");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to save notes.");
+    } finally {
+      setSavingNotes(false);
+    }
+  };
+
   return (
-    <main className="min-h-screen bg-slate-950 p-4 text-white sm:p-6">
-      <div className="mx-auto max-w-6xl">
-        <div className="mb-5 flex items-center justify-between">
+    <main className="min-h-screen bg-background p-4 text-on-surface sm:p-6 lg:p-8 flex flex-col animate-in fade-in duration-500">
+      <div className="mx-auto w-full max-w-7xl flex-1 flex flex-col">
+        <div className="mb-5 flex items-center justify-between border-b border-outline-variant pb-4">
           <div>
-            <p className="text-sm text-blue-400">RuralCare</p>
-
-            <h1 className="text-2xl font-bold">
-              Video Consultation
-            </h1>
-
-            <p className="mt-1 text-sm text-slate-400">
-              Appointment: {appointmentId}
-            </p>
+            <p className="text-sm text-primary font-bold uppercase tracking-wider">RuralCare</p>
+            <h1 className="text-2xl font-bold mt-1 text-on-surface">Video Consultation</h1>
+            <p className="mt-1 text-sm text-on-surface-variant">Appointment: {appointmentId}</p>
           </div>
-
-          <div
-            className={`rounded-full px-3 py-1 text-xs font-medium ${
-              connected
-                ? "bg-green-500/20 text-green-400"
-                : "bg-red-500/20 text-red-400"
-            }`}
-          >
+          <div className={`rounded-full px-4 py-1.5 text-sm font-medium flex items-center gap-2 ${
+            connected ? "bg-green-100 text-green-700 border border-green-200" : "bg-orange-100 text-orange-700 border border-orange-200"
+          }`}>
+            <span className={`w-2 h-2 rounded-full ${connected ? "bg-green-500" : "bg-orange-500 animate-pulse"}`}></span>
             {connected ? "Connected" : "Connecting..."}
           </div>
         </div>
 
         {error && (
-          <div className="mb-5 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300">
+          <div className="mb-5 rounded-xl border border-error bg-error-container p-4 text-sm text-on-error-container">
             {error}
           </div>
         )}
 
-        <div className="grid gap-4 lg:grid-cols-2">
-          <div className="relative aspect-video overflow-hidden rounded-2xl bg-slate-900">
-            <video
-              ref={remoteVideoRef}
-              autoPlay
-              playsInline
-              className="h-full w-full object-cover"
-            />
-
-            <div className="absolute left-4 top-4 rounded-lg bg-black/50 px-3 py-1 text-xs">
-              Remote Participant
+        <div className="flex flex-col lg:flex-row gap-6 flex-1 min-h-0">
+          {/* Main Video Area */}
+          <div className="flex-1 flex flex-col gap-4">
+            <div className="relative flex-1 bg-surface-container-lowest rounded-2xl overflow-hidden border border-outline-variant shadow-md flex items-center justify-center">
+              <video
+                ref={remoteVideoRef}
+                autoPlay
+                playsInline
+                className={`h-full w-full object-cover ${!callStarted ? 'opacity-0' : 'opacity-100'}`}
+              />
+              <div className="absolute left-4 top-4 rounded-lg bg-surface/80 backdrop-blur-sm px-3 py-1.5 text-xs font-bold z-10 border border-outline-variant text-on-surface shadow-sm">
+                Remote Participant
+              </div>
+              {!callStarted && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-on-surface-variant bg-surface/90 backdrop-blur-sm z-0">
+                  <div className="w-16 h-16 mb-4 rounded-full bg-surface-container flex items-center justify-center shadow-inner">
+                    <Video className="w-8 h-8 text-on-surface-variant/70" />
+                  </div>
+                  <p className="font-bold text-lg text-on-surface">Waiting to connect</p>
+                  <p className="text-sm mt-1">The consultation will begin shortly.</p>
+                </div>
+              )}
+              
+              {/* Floating Self View */}
+              <div className="absolute right-4 bottom-4 w-32 sm:w-48 aspect-video bg-background rounded-xl overflow-hidden border-2 border-outline-variant shadow-lg z-10">
+                <video
+                  ref={localVideoRef}
+                  autoPlay
+                  muted
+                  playsInline
+                  className="h-full w-full object-cover"
+                />
+                <div className="absolute left-2 top-2 rounded bg-surface/80 backdrop-blur-sm px-2 py-0.5 text-[10px] font-bold border border-outline-variant text-on-surface">
+                  You
+                </div>
+              </div>
             </div>
 
-            {!callStarted && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <p className="text-sm text-slate-400">
-                  Waiting for the other participant...
-                </p>
+            {/* Controls */}
+            <div className="flex items-center justify-center gap-4 bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant shadow-sm">
+              {!callStarted ? (
+                <button
+                  onClick={startCall}
+                  disabled={!connected || !peerReady}
+                  className="rounded-xl bg-primary px-8 py-3.5 text-sm font-semibold text-white transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50 flex items-center gap-2 shadow-sm"
+                >
+                  <Video className="w-5 h-5" /> {peerReady ? "Start Consultation" : "Waiting for participant"}
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={toggleMute}
+                    className={`rounded-xl p-4 transition flex flex-col items-center gap-1 ${
+                      muted ? "bg-error-container text-on-error-container hover:bg-error-container/80" : "bg-surface-container hover:bg-surface-variant text-on-surface"
+                    }`}
+                  >
+                    {muted ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
+                  </button>
+                  <button
+                    onClick={toggleCamera}
+                    className={`rounded-xl p-4 transition flex flex-col items-center gap-1 ${
+                      cameraOff ? "bg-error-container text-on-error-container hover:bg-error-container/80" : "bg-surface-container hover:bg-surface-variant text-on-surface"
+                    }`}
+                  >
+                    {cameraOff ? <VideoOff className="w-6 h-6" /> : <Video className="w-6 h-6" />}
+                  </button>
+                  <div className="w-px h-10 bg-outline-variant mx-2"></div>
+                  <button
+                    onClick={endCall}
+                    className="rounded-xl bg-error p-4 text-white hover:bg-error/90 shadow-sm"
+                  >
+                    <PhoneOff className="w-6 h-6" />
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Sidebar */}
+          <div className="w-full lg:w-96 flex flex-col gap-4">
+            {/* Chat */}
+            <div className="flex-1 flex flex-col bg-surface-container-lowest rounded-2xl border border-outline-variant overflow-hidden shadow-sm min-h-[300px]">
+              <div className="p-4 border-b border-outline-variant font-bold text-on-surface flex items-center justify-between">
+                Chat
+                <span className="text-xs text-on-surface-variant font-medium">
+                  {dataChannelRef.current?.readyState === "open" ? "Connected" : "Waiting..."}
+                </span>
+              </div>
+              <div ref={chatContainerRef} className="flex-1 p-4 overflow-y-auto flex flex-col gap-3">
+                {chatMessages.length === 0 ? (
+                  <p className="text-center text-sm text-on-surface-variant mt-auto mb-auto">No messages yet.</p>
+                ) : (
+                  chatMessages.map((msg, idx) => (
+                    <div key={idx} className={`flex flex-col ${msg.sender === "You" ? "items-end" : "items-start"}`}>
+                      <div className={`px-3 py-2 rounded-2xl max-w-[85%] text-sm shadow-sm ${
+                        msg.sender === "You" ? "bg-primary text-white rounded-br-sm" : "bg-surface-container text-on-surface rounded-bl-sm"
+                      }`}>
+                        {msg.text}
+                      </div>
+                      <span className="text-[10px] text-on-surface-variant mt-1 mx-1">{msg.time}</span>
+                    </div>
+                  ))
+                )}
+              </div>
+              <form onSubmit={sendChatMessage} className="p-3 border-t border-outline-variant bg-surface flex gap-2">
+                <input
+                  type="text"
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  placeholder="Type a message..."
+                  className="flex-1 bg-surface-container border-none rounded-xl px-4 py-2 text-sm focus:ring-1 focus:ring-primary outline-none text-on-surface placeholder-on-surface-variant/50 transition-all"
+                  disabled={dataChannelRef.current?.readyState !== "open"}
+                />
+                <button 
+                  type="submit" 
+                  disabled={!chatInput.trim() || dataChannelRef.current?.readyState !== "open"}
+                  className="p-2 bg-primary rounded-xl text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/90 transition shadow-sm"
+                >
+                  <Send className="w-4 h-4" />
+                </button>
+              </form>
+            </div>
+
+            {/* Doctor Notes */}
+            {isDoctor && (
+              <div className="flex flex-col bg-surface-container-lowest rounded-2xl border border-outline-variant overflow-hidden shrink-0 shadow-sm">
+                <div className="p-4 border-b border-outline-variant font-bold text-on-surface flex items-center justify-between">
+                  Consultation Notes
+                </div>
+                <div className="p-4 flex flex-col gap-3">
+                  <textarea
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="Add clinical notes here..."
+                    className="w-full h-32 bg-surface-container border border-outline-variant/50 rounded-xl p-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-on-surface placeholder-on-surface-variant/50 resize-none transition-all"
+                  />
+                  <button
+                    onClick={saveNotes}
+                    disabled={savingNotes}
+                    className="flex items-center justify-center gap-2 w-full py-2.5 bg-surface-container hover:bg-surface-variant text-primary font-bold rounded-xl transition text-sm disabled:opacity-50"
+                  >
+                    <Save className="w-4 h-4" /> {savingNotes ? "Saving..." : "Save Notes"}
+                  </button>
+                </div>
               </div>
             )}
           </div>
-
-          <div className="relative aspect-video overflow-hidden rounded-2xl bg-slate-900">
-            <video
-              ref={localVideoRef}
-              autoPlay
-              muted
-              playsInline
-              className="h-full w-full object-cover"
-            />
-
-            <div className="absolute left-4 top-4 rounded-lg bg-black/50 px-3 py-1 text-xs">
-              You
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-          {!callStarted && (
-            <button
-              onClick={startCall}
-              disabled={!connected}
-              className="rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              Start Consultation
-            </button>
-          )}
-
-          {callStarted && (
-            <>
-              <button
-                onClick={toggleMute}
-                className="rounded-xl bg-slate-800 px-5 py-3 text-sm font-medium hover:bg-slate-700"
-              >
-                {muted ? "Unmute" : "Mute"}
-              </button>
-
-              <button
-                onClick={toggleCamera}
-                className="rounded-xl bg-slate-800 px-5 py-3 text-sm font-medium hover:bg-slate-700"
-              >
-                {cameraOff ? "Camera On" : "Camera Off"}
-              </button>
-            </>
-          )}
-
-          <button
-            onClick={endCall}
-            className="rounded-xl bg-red-600 px-6 py-3 text-sm font-semibold hover:bg-red-700"
-          >
-            End Consultation
-          </button>
         </div>
       </div>
     </main>

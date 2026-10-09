@@ -9,7 +9,7 @@ import { apiClient } from "@/lib/api-client";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, ArrowLeft } from "lucide-react";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -70,9 +70,20 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md p-8">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-primary mb-2">RuralCare</h1>
+      <Card className="w-full max-w-md p-8 relative">
+        <Link 
+          href="/" 
+          className="absolute left-6 top-6 text-muted-foreground hover:text-primary transition flex items-center gap-1.5 text-sm font-medium"
+        >
+          <ArrowLeft size={16} />
+          Back
+        </Link>
+        <div className="text-center mb-8 mt-4">
+          <img
+            src="/logo.svg"
+            alt="RuralCare Logo"
+            className="h-10 mx-auto mb-2 w-auto object-contain"
+          />
           <p className="text-muted-foreground">Sign in to your account</p>
         </div>
 

@@ -4,7 +4,7 @@ import { FormEvent, useState } from "react";
 import { apiClient } from "@/lib/api-client";
 
 interface SymptomAnalysis {
-  possible_conditions: string[];
+  discussion_points: string[];
   urgency: "low" | "medium" | "high" | "emergency";
   recommendation: string;
   warning_signs: string[];
@@ -76,7 +76,7 @@ export default function SymptomAssistantPage() {
             AI Symptom Assistant
           </h1>
           <p className="mt-2 text-gray-600">
-            Describe your symptoms and get an initial health assessment.
+            Describe your symptoms to prepare non-diagnostic discussion points for a clinician.
           </p>
         </div>
 
@@ -125,7 +125,7 @@ export default function SymptomAssistantPage() {
             <section className="rounded-2xl bg-white p-6 shadow-sm">
               <div className="mb-4 flex items-center justify-between">
                 <h2 className="text-xl font-semibold text-gray-900">
-                  Assessment
+                  Symptom summary
                 </h2>
 
                 <span
@@ -138,13 +138,13 @@ export default function SymptomAssistantPage() {
               </div>
 
               <h3 className="mb-2 font-medium text-gray-800">
-                Possible conditions
+                Discussion points for your clinician
               </h3>
 
               <ul className="list-disc space-y-1 pl-5 text-gray-600">
-                {result.analysis.possible_conditions.map(
-                  (condition, index) => (
-                    <li key={index}>{condition}</li>
+                {result.analysis.discussion_points.map(
+                  (point, index) => (
+                    <li key={index}>{point}</li>
                   )
                 )}
               </ul>

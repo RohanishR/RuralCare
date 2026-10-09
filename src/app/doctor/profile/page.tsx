@@ -44,6 +44,7 @@ export default function DoctorProfilePage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [verificationStatus, setVerificationStatus] = useState<string>("");
 
   const loadProfile = async () => {
     setLoading(true);
@@ -71,6 +72,8 @@ export default function DoctorProfilePage() {
         bio: doctor.bio || "",
         is_available: doctor.is_available,
       });
+
+      setVerificationStatus(doctor.verification_status || "pending");
     } catch (requestError: unknown) {
       const message =
         requestError instanceof Error
@@ -170,6 +173,8 @@ export default function DoctorProfilePage() {
         is_available: doctor.is_available,
       });
 
+      setVerificationStatus(doctor.verification_status || "pending");
+
       setSuccess("Your professional profile has been saved successfully.");
     } catch (requestError: unknown) {
       setError(
@@ -213,6 +218,23 @@ export default function DoctorProfilePage() {
         <p className="mt-1 text-on-surface-variant">
           Keep your professional information accurate for RuralCare patients.
         </p>
+
+        {hasProfile && verificationStatus && (
+          <div className={`mt-4 p-4 rounded-lg border ${
+            verificationStatus === 'approved' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-700' :
+            verificationStatus === 'rejected' ? 'bg-red-500/10 border-red-500/20 text-red-700' :
+            'bg-amber-500/10 border-amber-500/20 text-amber-700'
+          }`}>
+            <h3 className="font-bold flex items-center gap-2">
+              Verification Status: {verificationStatus.charAt(0).toUpperCase() + verificationStatus.slice(1)}
+            </h3>
+            <p className="mt-1 text-sm">
+              {verificationStatus === 'approved' ? 'Your profile is verified and visible to patients.' :
+               verificationStatus === 'rejected' ? 'Your profile verification was rejected. Please update your details or contact support.' :
+               'Your profile is currently under review by our administrators. You will be able to receive appointments once approved.'}
+            </p>
+          </div>
+        )}
       </div>
 
       {success && (

@@ -5,8 +5,7 @@ from pydantic import BaseModel, Field
 
 
 class PrescriptionCreate(BaseModel):
-    patient_id: str
-    appointment_id: Optional[str] = None
+    appointment_id: str
     medicine: str = Field(..., min_length=2, max_length=200)
     dosage: str = Field(..., min_length=1, max_length=100)
     frequency: str = Field(..., min_length=1, max_length=100)

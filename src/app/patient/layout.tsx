@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import NotificationBell from "@/components/NotificationBell";
 
 export default function PatientLayout({
   children,
@@ -22,7 +23,7 @@ export default function PatientLayout({
       label: "Appointments",
     },
     {
-      href: "/patient/records",
+      href: "/patient/medical-records",
       icon: "medical_information",
       label: "Medical Records",
     },
@@ -44,7 +45,7 @@ export default function PatientLayout({
               <img
                 alt="RuralCare Logo"
                 className="h-9 w-auto object-contain"
-                src="https://lh3.googleusercontent.com/aida/AEtjO1V0FQI2eM9nOW5WhwpDD5OHYSrXqvGhrjjMtRhjO4H7fLmjxdXGUtL_8Hv-A3LPlDq7Ij01rhaSR5Qb1fA1qf-sIYQXJtRk8ZoxBo--mNEKeQ9CqgG2CzKAMNMXennLRUvKyAPU_fdISY2Rmk2_CM35LATG3ZqlJ8_dUkorKQNdC6T3OArF9OHNntweQtqTLqGmTcTNN8aFlJjSLx9pnwOBbuXIS-eqDJb9BeloJT04mgXYwHRgu7EzUMg"
+                src="/logo.svg"
               />
             </Link>
             <span className="md:hidden flex items-center p-2 text-on-surface-variant hover:text-primary cursor-pointer">
@@ -160,10 +161,7 @@ export default function PatientLayout({
                 हिन्दी
               </button>
             </div>
-            <button className="relative w-11 h-11 flex items-center justify-center rounded-lg border border-outline-variant bg-surface hover:bg-surface-container transition-colors text-on-surface-variant">
-              <span className="material-symbols-outlined">notifications</span>
-              <span className="absolute top-2.5 right-2.5 w-2.5 h-2.5 bg-error rounded-full ring-2 ring-surface-container-lowest"></span>
-            </button>
+            <NotificationBell />
           </div>
         </header>
 

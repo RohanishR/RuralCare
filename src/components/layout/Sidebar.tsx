@@ -18,9 +18,9 @@ export const Sidebar: React.FC = () => {
   const menuItems = [
     { icon: LayoutDashboard, label: "Dashboard", href: `/${role}/dashboard` },
     { icon: Users, label: "Find Doctor", href: "/find-doctor" },
-    { icon: Calendar, label: "Appointments", href: "/appointments" },
-    { icon: FileText, label: "Records", href: "/records" },
-    { icon: Settings, label: "Settings", href: "/settings" },
+    { icon: Calendar, label: "Appointments", href: "/patient/appointments" },
+    { icon: FileText, label: "Records", href: "/patient/medical-records" },
+    { icon: Settings, label: "Settings", href: "/patient/profile" },
   ];
 
   return (

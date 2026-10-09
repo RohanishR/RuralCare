@@ -142,7 +142,7 @@ export default function FindDoctorPage() {
       return;
     }
 
-    const appointmentDateTime = `${appointmentDate}T${appointmentTime}:00`;
+    const appointmentDateTime = new Date(`${appointmentDate}T${appointmentTime}:00`).toISOString();
 
     try {
       await apiClient.createAppointment({

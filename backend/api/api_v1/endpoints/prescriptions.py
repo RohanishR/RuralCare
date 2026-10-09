@@ -3,150 +3,69 @@ from datetime import datetime, timezone
 from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException, status
 
+from backend.api.deps import get_current_user
 from backend.core.database import get_database
-from backend.core.security import get_current_user
-from backend.schemas.prescription import (
-    PrescriptionCreate,
-    PrescriptionResponse,
-)
-
+from backend.models.appointment import AppointmentModel
+from backend.models.doctor import DoctorModel
+from backend.models.patient import PatientModel
+from backend.schemas.prescription import PrescriptionCreate, PrescriptionResponse
+from backend.schemas.user import UserResponse
 
 router = APIRouter()
 
 
-def get_user_id(current_user) -> str:
-    if isinstance(current_user, dict):
-        return str(
-            current_user.get("_id")
-            or current_user.get("id")
-        )
-
-    return str(
-        getattr(current_user, "id", None)
-        or getattr(current_user, "_id", None)
-    )
-
-
-def get_user_role(current_user) -> str:
-    if isinstance(current_user, dict):
-        return str(current_user.get("role", ""))
-
-    return str(getattr(current_user, "role", ""))
-
-
-@router.post(
-    "/",
-    response_model=PrescriptionResponse,
-    status_code=status.HTTP_201_CREATED,
-)
-async def create_prescription(
-    request: PrescriptionCreate,
-    current_user=Depends(get_current_user),
-):
-    if get_user_role(current_user) != "doctor":
-        raise HTTPException(
-            status_code=403,
-            detail="Only doctors can create prescriptions.",
-        )
-
-    db = get_database()
-
-    doctor_id = get_user_id(current_user)
-
-    document = {
-        "patient_id": request.patient_id,
-        "doctor_id": doctor_id,
-        "appointment_id": request.appointment_id,
-        "medicine": request.medicine,
-        "dosage": request.dosage,
-        "frequency": request.frequency,
-        "duration": request.duration,
-        "instructions": request.instructions or "",
-        "created_at": datetime.now(timezone.utc),
-    }
-
-    result = await db.prescriptions.insert_one(document)
-
-    document["id"] = str(result.inserted_id)
-
-    return PrescriptionResponse(**document)
-
-
-@router.get(
-    "/patient",
-    response_model=list[PrescriptionResponse],
-)
-async def get_patient_prescriptions(
-    current_user=Depends(get_current_user),
-):
-    if get_user_role(current_user) != "patient":
-        raise HTTPException(
-            status_code=403,
-            detail="Only patients can access this endpoint.",
-        )
-
-    db = get_database()
-
-    patient_id = get_user_id(current_user)
-
-    prescriptions = []
-
-    cursor = (
-        db.prescriptions
-        .find({"patient_id": patient_id})
-        .sort("created_at", -1)
-    )
-
-    async for document in cursor:
-        document["id"] = str(document.pop("_id"))
-        prescriptions.append(document)
-
-    return prescriptions
-
-
-@router.get(
-    "/{prescription_id}",
-    response_model=PrescriptionResponse,
-)
-async def get_prescription(
-    prescription_id: str,
-    current_user=Depends(get_current_user),
-):
-    if not ObjectId.is_valid(prescription_id):
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid prescription ID.",
-        )
-
-    db = get_database()
-
-    document = await db.prescriptions.find_one(
-        {"_id": ObjectId(prescription_id)}
-    )
-
-    if not document:
-        raise HTTPException(
-            status_code=404,
-            detail="Prescription not found.",
-        )
-
-    user_id = get_user_id(current_user)
-    role = get_user_role(current_user)
-
-    if role == "patient":
-        if document["patient_id"] != user_id:
-            raise HTTPException(
-                status_code=403,
-                detail="Access denied.",
-            )
-
-    elif role == "doctor":
-        if document["doctor_id"] != user_id:
-            raise HTTPException(
-                status_code=403,
-                detail="Access denied.",
-            )
-
+def serialize(document: dict) -> dict:
     document["id"] = str(document.pop("_id"))
-
     return document
+
+
+async def get_owned_appointment(appointment_id: str, current_user: UserResponse) -> dict:
+    doctor = await DoctorModel.get_by_user_id(current_user.id)
+    appointment = await AppointmentModel.get_by_id(appointment_id)
+    if not doctor or not appointment or appointment["doctor_id"] != str(doctor["_id"]):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You cannot prescribe for this appointment.")
+    if appointment["status"] not in {"confirmed", "completed"}:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Prescriptions can only be added to confirmed or completed appointments.")
+    return appointment
+
+
+@router.post("/", response_model=PrescriptionResponse, status_code=status.HTTP_201_CREATED)
+async def create_prescription(request: PrescriptionCreate, current_user: UserResponse = Depends(get_current_user)):
+    if current_user.role != "doctor":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only doctors can create prescriptions.")
+    appointment = await get_owned_appointment(request.appointment_id, current_user)
+    document = {"patient_id": appointment["patient_id"], "doctor_id": appointment["doctor_id"], "appointment_id": request.appointment_id, "medicine": request.medicine, "dosage": request.dosage, "frequency": request.frequency, "duration": request.duration, "instructions": request.instructions or "", "created_at": datetime.now(timezone.utc)}
+    result = await get_database().prescriptions.insert_one(document)
+    document["id"] = str(result.inserted_id)
+    return document
+
+
+@router.get("/patient", response_model=list[PrescriptionResponse])
+async def get_patient_prescriptions(current_user: UserResponse = Depends(get_current_user)):
+    if current_user.role != "patient":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only patients can access this endpoint.")
+    patient = await PatientModel.get_by_user_id(current_user.id)
+    if not patient:
+        return []
+    cursor = get_database().prescriptions.find({"patient_id": str(patient["_id"])}).sort("created_at", -1)
+    return [serialize(document) async for document in cursor]
+
+
+@router.get("/{prescription_id}", response_model=PrescriptionResponse)
+async def get_prescription(prescription_id: str, current_user: UserResponse = Depends(get_current_user)):
+    if not ObjectId.is_valid(prescription_id):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid prescription ID.")
+    document = await get_database().prescriptions.find_one({"_id": ObjectId(prescription_id)})
+    if not document:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Prescription not found.")
+    if current_user.role == "patient":
+        profile = await PatientModel.get_by_user_id(current_user.id)
+        allowed = profile and document["patient_id"] == str(profile["_id"])
+    elif current_user.role == "doctor":
+        profile = await DoctorModel.get_by_user_id(current_user.id)
+        allowed = profile and document["doctor_id"] == str(profile["_id"])
+    else:
+        allowed = False
+    if not allowed:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
+    return serialize(document)

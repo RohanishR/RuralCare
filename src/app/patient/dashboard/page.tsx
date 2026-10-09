@@ -2,6 +2,18 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import {
+  Calendar,
+  User,
+  Pill,
+  FileText,
+  Clock,
+  ChevronRight,
+  Activity,
+  PlusCircle,
+  Stethoscope,
+  HeartPulse,
+} from "lucide-react";
 
 import { Modal } from "@/components/ui/Modal";
 import { Appointment, apiClient } from "@/lib/api-client";
@@ -20,12 +32,13 @@ export default function PatientDashboard() {
     const loadAppointments = async () => {
       try {
         setLoading(true);
-
         const data = await apiClient.getPatientAppointments();
-
+        const now = new Date();
         setAppointments(
           data.filter(
-            (appointment) => appointment.status === "confirmed",
+            (appointment) => 
+              (appointment.status === "confirmed" || appointment.status === "pending") &&
+              new Date(appointment.appointment_date) > now
           ),
         );
       } catch (error) {
@@ -43,9 +56,7 @@ export default function PatientDashboard() {
 
   const createSummary = () => {
     const trimmed = symptomNote.trim();
-
     if (!trimmed) return;
-
     setSummary(
       `Symptoms noted: ${trimmed}. This is a patient-entered summary to share with your clinician; it is not a diagnosis or emergency assessment.`,
     );
@@ -53,8 +64,9 @@ export default function PatientDashboard() {
 
   const formatDate = (date: string) => {
     return new Date(date).toLocaleDateString("en-IN", {
+      weekday: "long",
       day: "numeric",
-      month: "short",
+      month: "long",
       year: "numeric",
     });
   };
@@ -67,180 +79,158 @@ export default function PatientDashboard() {
   };
 
   return (
-    <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-4 sm:p-6 lg:p-8">
-      {/* Welcome */}
-      <section className="flex flex-col justify-between gap-4 rounded-xl border border-outline-variant bg-surface-container-lowest p-6 shadow-sm sm:flex-row sm:items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-on-surface">
-            Welcome back,{" "}
-            {user?.name?.split(" ")[0] || "Patient"}
-          </h1>
-
-          <p className="mt-1 text-on-surface-variant">
-            Manage your appointments and health information in one place.
-          </p>
-        </div>
-
-        <span className="inline-flex w-fit items-center gap-2 rounded-full bg-secondary-container px-3 py-2 text-sm font-semibold text-on-secondary-container">
-          <span className="h-2 w-2 rounded-full bg-tertiary" />
-          Low-bandwidth ready
-        </span>
-      </section>
-
-      {/* Stats */}
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat
-          label="Upcoming appointments"
-          value={loading ? "..." : String(appointments.length)}
-          icon="event"
-        />
-
-        <Stat
-          label="Profile"
-          value="Health details"
-          icon="person"
-          href="/patient/profile"
-        />
-
-        <Stat
-          label="Prescriptions"
-          value="View records"
-          icon="medication"
-          href="/patient/prescriptions"
-        />
-
-        <Stat
-          label="Medical records"
-          value="Private & secure"
-          icon="clinical_notes"
-          href="/patient/records"
-        />
-      </section>
-
-      {/* Next consultation */}
-      <section className="rounded-xl border border-outline-variant bg-surface-container-lowest p-6 shadow-sm">
-        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+    <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 p-4 sm:p-6 lg:p-8 animate-in fade-in duration-500">
+      {/* Welcome Banner */}
+      <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-primary-container p-8 text-on-primary shadow-xl">
+        <div className="relative z-10 flex flex-col justify-between gap-6 sm:flex-row sm:items-center">
           <div>
-            <p className="text-sm font-semibold text-secondary">
-              NEXT CONSULTATION
+            <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">
+              Good {new Date().getHours() < 12 ? "morning" : new Date().getHours() < 18 ? "afternoon" : "evening"},{" "}
+              <span className="text-primary-fixed">{user?.name?.split(" ")[0] || "Patient"}</span>
+            </h1>
+            <p className="mt-2 text-lg text-primary-fixed-dim max-w-xl">
+              Your health journey is in good hands. Manage your consultations and medical records seamlessly.
             </p>
+          </div>
+          <div className="flex-shrink-0">
+            <span className="inline-flex items-center gap-2 rounded-full bg-white/20 backdrop-blur-md px-4 py-2 text-sm font-semibold text-white ring-1 ring-white/30 shadow-sm">
+              <span className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-tertiary-fixed opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-tertiary-fixed"></span>
+              </span>
+              Network Connected
+            </span>
+          </div>
+        </div>
+        
+        {/* Decorative elements */}
+        <div className="absolute -right-24 -top-24 h-96 w-96 rounded-full bg-white/10 blur-3xl"></div>
+        <div className="absolute -bottom-24 -left-24 h-72 w-72 rounded-full bg-secondary/20 blur-3xl"></div>
+      </section>
 
-            {nextAppointment ? (
-              <>
-                <h2 className="mt-1 text-xl font-bold text-on-surface">
-                  Doctor consultation
-                </h2>
+      {/* Stats Grid */}
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          label="Upcoming"
+          value={loading ? "..." : `${appointments.length} Consultations`}
+          icon={<Calendar className="h-6 w-6" />}
+          href="/patient/appointments"
+          colorClass="bg-blue-50 text-blue-700"
+        />
+        <StatCard
+          label="Profile"
+          value="Health Details"
+          icon={<User className="h-6 w-6" />}
+          href="/patient/profile"
+          colorClass="bg-purple-50 text-purple-700"
+        />
+        <StatCard
+          label="Prescriptions"
+          value="View Records"
+          icon={<Pill className="h-6 w-6" />}
+          href="/patient/prescriptions"
+          colorClass="bg-green-50 text-green-700"
+        />
+        <StatCard
+          label="Medical Records"
+          value="Private & Secure"
+          icon={<FileText className="h-6 w-6" />}
+          href="/patient/medical-records"
+          colorClass="bg-orange-50 text-orange-700"
+        />
+      </section>
 
-                <p className="text-on-surface-variant">
-                  {formatDate(nextAppointment.appointment_date)} at{" "}
-                  {formatTime(nextAppointment.appointment_date)}
-                </p>
-
-                <p className="mt-1 text-sm text-on-surface-variant">
-                  Reason: {nextAppointment.reason}
-                </p>
-              </>
-            ) : (
-              <>
-                <h2 className="mt-1 text-xl font-bold text-on-surface">
-                  No appointment booked
-                </h2>
-
-                <p className="text-on-surface-variant">
-                  Find a verified doctor and select a time that works for you.
-                </p>
-              </>
-            )}
+      <div className="grid gap-8 lg:grid-cols-3">
+        {/* Next consultation (Takes up 2 columns) */}
+        <section className="lg:col-span-2 rounded-2xl border border-outline-variant bg-surface-container-lowest p-6 shadow-md transition-all hover:shadow-lg">
+          <div className="mb-6 flex items-center justify-between">
+            <h2 className="text-xl font-bold text-on-surface flex items-center gap-2">
+              <Clock className="h-5 w-5 text-primary" />
+              Next Consultation
+            </h2>
           </div>
 
           {nextAppointment ? (
-            <Link
-              href="/patient/appointments"
-              className="rounded-lg bg-primary px-5 py-3 text-center font-semibold text-on-primary hover:bg-primary-container"
-            >
-              View appointment
-            </Link>
+            <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center justify-between rounded-xl bg-surface-container-low p-5 border border-outline-variant/50">
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <Stethoscope className="h-6 w-6" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-on-surface">Doctor Consultation</h3>
+                  <p className="text-sm font-medium text-on-surface-variant mt-1">
+                    {formatDate(nextAppointment.appointment_date)} at {formatTime(nextAppointment.appointment_date)}
+                  </p>
+                  <p className="mt-2 text-sm text-on-surface-variant bg-surface px-3 py-1.5 rounded-md inline-block border border-outline-variant/30">
+                    <span className="font-semibold">Reason:</span> {nextAppointment.reason}
+                  </p>
+                </div>
+              </div>
+              {nextAppointment.status === "confirmed" ? (
+                <Link
+                  href={`/consultation/${nextAppointment.id}`}
+                  className="group flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-primary px-5 py-2.5 font-semibold text-white transition-all hover:bg-primary-container hover:shadow-md"
+                >
+                  Join Call
+                  <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                </Link>
+              ) : (
+                <button
+                  disabled
+                  className="group flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-surface-variant px-5 py-2.5 font-semibold text-on-surface-variant cursor-not-allowed"
+                >
+                  Pending Confirmation
+                </button>
+              )}
+            </div>
           ) : (
-            <Link
-              href="/find-doctor"
-              className="rounded-lg bg-primary px-5 py-3 text-center font-semibold text-on-primary hover:bg-primary-container"
-            >
-              Find a doctor
-            </Link>
+            <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-outline-variant/50 bg-surface p-8 text-center">
+              <div className="mb-4 rounded-full bg-secondary-container p-3 text-on-secondary-container">
+                <Calendar className="h-8 w-8" />
+              </div>
+              <h3 className="text-lg font-bold text-on-surface mb-2">No upcoming appointments</h3>
+              <p className="mb-6 max-w-sm text-on-surface-variant text-sm">
+                Get the care you need by finding a verified specialist and booking a consultation time that works for you.
+              </p>
+              <Link
+                href="/find-doctor"
+                className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 font-semibold text-white shadow-sm transition-all hover:bg-primary/90 hover:shadow-md"
+              >
+                <PlusCircle className="h-5 w-5" />
+                Find a Doctor
+              </Link>
+            </div>
           )}
-        </div>
-      </section>
+        </section>
 
-      {/* Symptom notes */}
-      <section className="rounded-xl border border-secondary-fixed-dim bg-secondary-container/50 p-6">
-        <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
-          <div>
-            <p className="text-sm font-bold text-secondary">
-              SYMPTOM NOTES
-            </p>
+        {/* AI Symptom Assistant */}
+        <section className="relative overflow-hidden rounded-2xl border border-secondary/20 bg-gradient-to-b from-secondary-container/80 to-surface-container-lowest p-6 shadow-md transition-all hover:shadow-lg">
+          <div className="relative z-10 flex h-full flex-col justify-between gap-6">
+            <div>
+              <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-secondary/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-secondary">
+                <Activity className="h-3.5 w-3.5" />
+                AI Assistant
+              </div>
+              <h2 className="text-xl font-bold text-on-surface">Symptom Checker</h2>
+              <p className="mt-3 text-sm text-on-surface-variant">
+                Describe how you're feeling in your own words. Our AI will organize your symptoms into a professional summary for your doctor.
+              </p>
+            </div>
 
-            <h2 className="text-xl font-bold text-on-surface">
-              Prepare for your consultation
-            </h2>
-
-            <p className="mt-1 max-w-2xl text-sm text-on-surface-variant">
-              Capture symptoms in your own words. RuralCare only organizes
-              your notes for a clinician—it does not diagnose conditions.
-            </p>
+            <button
+              onClick={() => setSymptomOpen(true)}
+              className="group flex w-full items-center justify-between rounded-xl bg-secondary px-5 py-3.5 font-semibold text-white shadow-sm transition-all hover:bg-secondary/90 hover:shadow-md"
+            >
+              Start Assessment
+              <HeartPulse className="h-5 w-5 transition-transform group-hover:scale-110" />
+            </button>
           </div>
-
-          <button
-            onClick={() => setSymptomOpen(true)}
-            className="rounded-lg bg-secondary px-5 py-3 font-semibold text-on-secondary hover:bg-primary"
-          >
-            Add symptom notes
-          </button>
-        </div>
-      </section>
-
-      {/* Quick actions */}
-      <section>
-        <h2 className="mb-3 text-lg font-bold text-on-surface">
-          Quick actions
-        </h2>
-
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Action
-            href="/find-doctor"
-            icon="person_search"
-            title="Find a doctor"
-            text="Search verified specialists"
-          />
-
-          <Action
-            href="/patient/appointments"
-            icon="calendar_add_on"
-            title="Appointments"
-            text="View or cancel bookings"
-          />
-
-          <Action
-            href="/patient/prescriptions"
-            icon="receipt_long"
-            title="Prescriptions"
-            text="View available prescriptions"
-          />
-
-          <Action
-            href="/patient/profile"
-            icon="person"
-            title="My profile"
-            text="Update health information"
-          />
-
-          <Action
-            href="/patient/symptom-assistant"
-            icon="health_and_safety"
-            title="AI Symptom Assistant"
-            text="Describe symptoms and get an initial assessment"
-          />
-        </div>
-      </section>
+          
+          <div className="absolute -bottom-10 -right-10 opacity-5">
+            <HeartPulse className="h-48 w-48" />
+          </div>
+        </section>
+      </div>
 
       {/* Symptom modal */}
       <Modal
@@ -249,38 +239,44 @@ export default function PatientDashboard() {
           setSymptomOpen(false);
           setSummary("");
         }}
-        title="Symptom notes"
+        title="Symptom Notes"
       >
-        <div className="space-y-4">
-          <p className="text-sm text-on-surface-variant">
-            If this may be an emergency, call 112 or seek urgent care instead
-            of waiting for an online consultation.
-          </p>
+        <div className="space-y-5">
+          <div className="rounded-lg bg-red-50 p-4 border border-red-100 flex items-start gap-3 text-red-800">
+            <Activity className="h-5 w-5 flex-shrink-0 mt-0.5" />
+            <p className="text-sm font-medium leading-relaxed">
+              If this is a medical emergency, please call your local emergency number (e.g., 112) or seek urgent care immediately.
+            </p>
+          </div>
 
-          <label className="block text-sm font-medium">
-            What would you like your doctor to know?
-
+          <div className="space-y-3">
+            <label className="block text-sm font-bold text-on-surface">
+              What would you like your doctor to know?
+            </label>
             <textarea
               value={symptomNote}
               onChange={(event) => setSymptomNote(event.target.value)}
-              className="mt-1 min-h-28 w-full rounded-lg border border-outline-variant p-3"
-              placeholder="For example: fever since yesterday, cough, and tiredness."
+              className="min-h-[160px] w-full rounded-xl border border-outline-variant bg-surface p-4 text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all resize-y"
+              placeholder="For example: I've had a mild fever and a persistent dry cough for the last 3 days. I also feel more tired than usual."
             />
-          </label>
+          </div>
 
           <button
             onClick={createSummary}
-            className="rounded-lg bg-primary px-4 py-2 font-semibold text-on-primary"
+            className="w-full rounded-xl bg-primary px-4 py-3.5 font-semibold text-white transition-all hover:bg-primary/90 shadow-sm"
           >
-            Prepare summary
+            Generate Professional Summary
           </button>
 
           {summary && (
-            <div
-              role="status"
-              className="rounded-lg bg-surface-container p-4 text-sm text-on-surface"
-            >
-              {summary}
+            <div className="animate-in slide-in-from-bottom-4 duration-300 rounded-xl bg-primary-container/10 p-5 border border-primary-container/20">
+              <h4 className="text-sm font-bold text-primary mb-2 flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                AI Generated Summary
+              </h4>
+              <p className="text-sm text-on-surface leading-relaxed">
+                {summary}
+              </p>
             </div>
           )}
         </div>
@@ -289,74 +285,48 @@ export default function PatientDashboard() {
   );
 }
 
-function Stat({
+function StatCard({
   label,
   value,
   icon,
   href,
+  colorClass,
 }: {
   label: string;
   value: string;
-  icon: string;
+  icon: React.ReactNode;
   href?: string;
+  colorClass: string;
 }) {
   const content = (
     <>
-      <span className="material-symbols-outlined rounded-lg bg-secondary-container p-2 text-primary">
+      <div className={`mb-4 inline-flex rounded-xl p-3 ${colorClass}`}>
         {icon}
-      </span>
-
-      <p className="mt-4 text-sm text-on-surface-variant">
-        {label}
-      </p>
-
-      <p className="mt-1 font-semibold text-on-surface">
-        {value}
-      </p>
+      </div>
+      <div>
+        <p className="text-sm font-medium text-on-surface-variant uppercase tracking-wider">{label}</p>
+        <p className="mt-1 text-lg font-bold text-on-surface">{value}</p>
+      </div>
     </>
   );
 
-  return href ? (
-    <Link
-      href={href}
-      className="rounded-xl border border-outline-variant bg-surface-container-lowest p-5 shadow-sm transition hover:border-primary"
-    >
-      {content}
-    </Link>
-  ) : (
-    <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-5 shadow-sm">
+  if (href) {
+    return (
+      <Link
+        href={href}
+        className="group relative overflow-hidden rounded-2xl border border-outline-variant bg-surface-container-lowest p-5 shadow-sm transition-all hover:-translate-y-1 hover:border-primary/50 hover:shadow-md"
+      >
+        <div className="absolute right-4 top-4 opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-1">
+          <ChevronRight className="h-5 w-5 text-on-surface-variant" />
+        </div>
+        {content}
+      </Link>
+    );
+  }
+
+  return (
+    <div className="relative overflow-hidden rounded-2xl border border-outline-variant bg-surface-container-lowest p-5 shadow-sm">
       {content}
     </div>
-  );
-}
-
-function Action({
-  href,
-  icon,
-  title,
-  text,
-}: {
-  href: string;
-  icon: string;
-  title: string;
-  text: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className="rounded-xl border border-outline-variant bg-surface-container-lowest p-5 transition hover:border-primary hover:shadow-sm"
-    >
-      <span className="material-symbols-outlined text-primary">
-        {icon}
-      </span>
-
-      <h3 className="mt-3 font-bold text-on-surface">
-        {title}
-      </h3>
-
-      <p className="mt-1 text-sm text-on-surface-variant">
-        {text}
-      </p>
-    </Link>
   );
 }

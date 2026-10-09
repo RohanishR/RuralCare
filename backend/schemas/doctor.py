@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -31,6 +31,7 @@ class DoctorBase(BaseModel):
         max_length=2000,
     )
     is_available: bool = True
+    verification_status: Literal["pending", "approved", "rejected"] = "pending"
 
 
 class DoctorCreate(DoctorBase):
