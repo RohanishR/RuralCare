@@ -46,9 +46,13 @@ function RegistrationForm() {
       formData.append("username", email);
       formData.append("password", password);
 
+      const getBaseUrl = () => {
+        if (typeof window !== "undefined") return "/api/v1";
+        return process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+      };
+
       const response = await fetch(
-        (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1") +
-          "/auth/login",
+        getBaseUrl() + "/auth/login",
         {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
