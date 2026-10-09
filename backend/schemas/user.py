@@ -24,7 +24,7 @@ class GoogleLogin(BaseModel):
 
 class UserResponse(UserBase):
     id: str
-    auth_provider: str
+    auth_provider: str = "local"
     created_at: datetime
     updated_at: datetime
 
