@@ -13,6 +13,8 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
     { label, error, fullWidth = true, options, className = "", ...props },
     ref,
   ) => {
+    const generatedId = React.useId();
+    const id = props.id || generatedId;
     const width = fullWidth ? "w-full" : "";
     const errorStyles = error
       ? "border-red-500 focus:ring-red-500"
@@ -21,13 +23,16 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
     return (
       <div className={`${width} flex flex-col gap-1.5`}>
         {label && (
-          <label className="text-sm font-medium text-on-surface">{label}</label>
+          <label htmlFor={id} className="text-sm font-medium text-on-surface">{label}</label>
         )}
         <div className="relative">
           <select
             ref={ref}
             className={`appearance-none bg-surface-container-low border rounded-lg pl-4 pr-10 py-2 w-full text-on-surface focus:outline-none focus:ring-2 focus:ring-offset-1 transition-shadow cursor-pointer ${errorStyles} ${className}`}
             {...props}
+            id={id}
+            aria-invalid={error ? true : props["aria-invalid"]}
+            aria-describedby={[props["aria-describedby"], error ? `${id}-error` : ""].filter(Boolean).join(" ") || undefined}
           >
             {options.map((opt) => (
               <option key={opt.value} value={opt.value}>
@@ -39,7 +44,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
             <ChevronDown className="h-5 w-5" />
           </div>
         </div>
-        {error && <span className="text-xs text-red-500">{error}</span>}
+        {error && <span id={`${id}-error`} role="alert" className="text-xs text-red-500">{error}</span>}
       </div>
     );
   },

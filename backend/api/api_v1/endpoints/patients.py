@@ -5,6 +5,8 @@ from backend.api.deps import get_current_user
 from backend.schemas.user import UserResponse
 from backend.schemas.patient import PatientUpdate, PatientResponse, PatientCreate
 from backend.models.patient import PatientModel
+from backend.models.doctor import DoctorModel
+from backend.models.appointment import AppointmentModel
 
 router = APIRouter()
 
@@ -80,9 +82,14 @@ async def get_patient_by_id(
 
     # Basic authorization check
     is_owner = patient["user_id"] == current_user.id
-    is_doctor = current_user.role in ["doctor", "admin"]
+    is_doctor = False
+    if current_user.role == "doctor":
+        doctor = await DoctorModel.get_by_user_id(current_user.id)
+        is_doctor = bool(doctor) and await AppointmentModel.has_care_relationship(
+            str(doctor["_id"]), str(patient["_id"])
+        )
 
-    if not (is_owner or is_doctor):
+    if not (is_owner or is_doctor or current_user.role == "admin"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not enough permissions to view this patient profile"

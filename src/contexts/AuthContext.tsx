@@ -92,6 +92,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     Cookies.set("access_token", token, {
       expires: 1,
       path: "/",
+      sameSite: "lax",
+      secure: window.location.protocol === "https:",
     });
 
     setUser(userData);

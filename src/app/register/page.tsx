@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { GoogleLogin } from "@react-oauth/google";
 import { useAuth } from "@/contexts/AuthContext";
@@ -13,10 +13,15 @@ import { Select } from "@/components/ui/Select";
 import { AlertCircle, ArrowLeft } from "lucide-react";
 
 export default function RegisterPage() {
+  return <Suspense fallback={<p className="p-8" role="status">Loading registration…</p>}><RegistrationForm /></Suspense>;
+}
+
+function RegistrationForm() {
+  const searchParams = useSearchParams();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("patient");
+  const [role, setRole] = useState(searchParams.get("role") === "doctor" ? "doctor" : "patient");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
@@ -132,6 +137,9 @@ export default function RegisterPage() {
           <Input
             label="Password"
             type="password"
+            minLength={12}
+            autoComplete="new-password"
+            placeholder="At least 12 characters"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required

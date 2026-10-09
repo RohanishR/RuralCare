@@ -10,6 +10,15 @@ class AppointmentModel:
     collection_name = "appointments"
 
     @classmethod
+    async def has_care_relationship(cls, doctor_id: str, patient_id: str) -> bool:
+        document = await get_database()[cls.collection_name].find_one({
+            "doctor_id": doctor_id,
+            "patient_id": patient_id,
+            "status": {"$in": ["confirmed", "completed"]},
+        }, {"_id": 1})
+        return document is not None
+
+    @classmethod
     async def get_by_id(
         cls,
         appointment_id: str,

@@ -3,6 +3,13 @@ import Cookies from "js-cookie";
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
 
+export class ApiError extends Error {
+  constructor(message: string, public status: number) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
 export interface Doctor {
   id: string;
   user_id: string;
@@ -42,8 +49,6 @@ export interface CreateAppointmentData {
 
 export interface UpdateAppointmentData {
   status?: "pending" | "confirmed" | "completed" | "cancelled";
-  appointment_date?: string;
-  reason?: string;
   notes?: string;
 }
 
@@ -72,6 +77,7 @@ class ApiClient {
     const config: RequestInit = {
       ...options,
       headers,
+      signal: options.signal ?? AbortSignal.timeout(30000),
     };
 
     try {
@@ -79,14 +85,21 @@ class ApiClient {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
-        throw new Error(
-          errorData?.detail || `API Error: ${response.status}`,
-        );
+        const detail: unknown = errorData?.detail;
+        const message = typeof detail === "string" ? detail :
+          Array.isArray(detail) ? detail.map((item: { msg?: string }) => item.msg || "Invalid input").join(". ") :
+          response.status >= 500 ? "The service is temporarily unavailable. Please try again." : `Request failed (${response.status}).`;
+        throw new ApiError(message, response.status);
       }
 
-      return response.json();
+      return response.status === 204 ? undefined as T : response.json();
     } catch (error) {
-      console.error("API Client Error:", error);
+      if (error instanceof TypeError) {
+        throw new ApiError("Unable to reach RuralCare. Check your connection and try again.", 0);
+      }
+      if (error instanceof Error && error.name === "TimeoutError") {
+        throw new ApiError("The request took too long. Check your connection and try again.", 408);
+      }
       throw error;
     }
   }
@@ -100,7 +113,7 @@ class ApiClient {
 
   async post<T>(
     endpoint: string,
-    data?: any,
+    data?: unknown,
     options?: RequestInit,
   ): Promise<T> {
     return this.request<T>(endpoint, {
@@ -112,7 +125,7 @@ class ApiClient {
 
   async put<T>(
     endpoint: string,
-    data?: any,
+    data?: unknown,
     options?: RequestInit,
   ): Promise<T> {
     return this.request<T>(endpoint, {
@@ -124,7 +137,7 @@ class ApiClient {
 
   async patch<T>(
     endpoint: string,
-    data?: any,
+    data?: unknown,
     options?: RequestInit,
   ): Promise<T> {
     return this.request<T>(endpoint, {

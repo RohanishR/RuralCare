@@ -1,13 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import Cookies from "js-cookie";
 import { useAuth } from "@/contexts/AuthContext";
-import { Mic, MicOff, Video, VideoOff, PhoneOff, Send, Save } from "lucide-react";
+import { apiClient, type Appointment } from "@/lib/api-client";
+import { Mic, MicOff, Video, VideoOff, PhoneOff, Send, Save, ArrowLeft } from "lucide-react";
 
 type SignalMessage = {
   type: string;
+  error?: string;
   offer?: RTCSessionDescriptionInit;
   answer?: RTCSessionDescriptionInit;
   candidate?: RTCIceCandidateInit;
@@ -45,10 +48,24 @@ export default function ConsultationPage() {
 
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState("");
+  const [chatReady, setChatReady] = useState(false);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   const [notes, setNotes] = useState("");
   const [savingNotes, setSavingNotes] = useState(false);
+  const [notesSaved, setNotesSaved] = useState(false);
+  const [notesLoaded, setNotesLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!isDoctor) return;
+    let active = true;
+    apiClient.get<Appointment>(`/appointments/${appointmentId}`).then(appointment => {
+      if (active) { setNotes(appointment.notes || ""); setNotesLoaded(true); }
+    }).catch(() => {
+      if (active) setError("Existing notes could not be loaded. Refresh before editing notes.");
+    });
+    return () => { active = false; };
+  }, [appointmentId, isDoctor]);
 
   // Auto-scroll chat
   useEffect(() => {
@@ -70,8 +87,8 @@ export default function ConsultationPage() {
       const msg = JSON.parse(event.data);
       setChatMessages((prev) => [...prev, { sender: "Remote", text: msg.text, time: msg.time }]);
     };
-    channel.onopen = () => console.log("Data channel open");
-    channel.onclose = () => console.log("Data channel closed");
+    channel.onopen = () => setChatReady(true);
+    channel.onclose = () => setChatReady(false);
   }, []);
 
   const createPeerConnection = useCallback(() => {
@@ -162,8 +179,9 @@ export default function ConsultationPage() {
   useEffect(() => {
     if (!appointmentId) return;
 
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const host = process.env.NEXT_PUBLIC_API_URL?.replace(/^https?:\/\//, "").replace(/\/api\/v1$/, "") || "127.0.0.1:8000";
+    const signalingUrl = new URL(process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1");
+    signalingUrl.protocol = signalingUrl.protocol === "https:" ? "wss:" : "ws:";
+    signalingUrl.pathname = `/ws/${encodeURIComponent(appointmentId)}`;
     
     const token = Cookies.get("access_token");
     if (!token) {
@@ -171,7 +189,8 @@ export default function ConsultationPage() {
       return;
     }
 
-    const socket = new WebSocket(`${protocol}//${host}/ws/${appointmentId}?token=${encodeURIComponent(token)}`);
+    signalingUrl.searchParams.set("token", token);
+    const socket = new WebSocket(signalingUrl);
     socketRef.current = socket;
 
     socket.onopen = () => {
@@ -179,11 +198,15 @@ export default function ConsultationPage() {
       setError("");
     };
 
-    socket.onclose = () => setConnected(false);
+    socket.onclose = (event) => {
+      setConnected(false);
+      setPeerReady(false);
+      if (event.code !== 1000) setError(event.reason || "The consultation connection closed. Refresh to reconnect.");
+    };
     socket.onerror = () => setError("Unable to connect to the consultation server.");
 
     socket.onmessage = async (event) => {
-      const message: any = JSON.parse(event.data);
+      const message: SignalMessage = JSON.parse(event.data);
       if (message.error) {
         setError(message.error);
         return;
@@ -197,7 +220,8 @@ export default function ConsultationPage() {
       if (message.type === "offer" && message.offer) {
         await peer.setRemoteDescription(new RTCSessionDescription(message.offer));
         await flushPendingCandidates(peer);
-        await startLocalMedia();
+        const stream = await startLocalMedia();
+        if (!stream) return;
         const answer = await peer.createAnswer();
         await peer.setLocalDescription(answer);
         sendSignal({ type: "answer", answer });
@@ -224,14 +248,26 @@ export default function ConsultationPage() {
     };
 
     return () => {
+      socket.onclose = null;
+      socket.onmessage = null;
+      socket.onerror = null;
       socket.close();
       peerRef.current?.close();
       localStreamRef.current?.getTracks().forEach((track) => track.stop());
+      peerRef.current = null;
+      localStreamRef.current = null;
+      socketRef.current = null;
+      dataChannelRef.current = null;
+      pendingCandidatesRef.current = [];
     };
   }, [appointmentId, createPeerConnection, flushPendingCandidates, sendSignal, startLocalMedia]);
 
   const startCall = async () => {
-    await beginOffer();
+    try {
+      await beginOffer();
+    } catch {
+      setError("Unable to start the call. Check camera permissions and refresh to try again.");
+    }
   };
 
   const toggleMute = () => {
@@ -273,13 +309,15 @@ export default function ConsultationPage() {
   };
 
   const saveNotes = async () => {
-    if (!appointmentId) return;
+    if (!appointmentId || !notesLoaded) return;
     setSavingNotes(true);
+    setNotesSaved(false);
     try {
-      setError("Consultation notes are not saved from this call screen yet.");
+      await apiClient.updateAppointment(appointmentId, { notes });
+      setNotesSaved(true);
     } catch (err) {
       console.error(err);
-      alert("Failed to save notes.");
+      setError("Failed to save notes. Your text is still here; please try again.");
     } finally {
       setSavingNotes(false);
     }
@@ -288,6 +326,15 @@ export default function ConsultationPage() {
   return (
     <main className="min-h-screen bg-background p-4 text-on-surface sm:p-6 lg:p-8 flex flex-col animate-in fade-in duration-500">
       <div className="mx-auto w-full max-w-7xl flex-1 flex flex-col">
+        <div className="mb-4">
+          <Link
+            href={isDoctor ? "/doctor/dashboard" : "/patient/dashboard"}
+            className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Dashboard
+          </Link>
+        </div>
         <div className="mb-5 flex items-center justify-between border-b border-outline-variant pb-4">
           <div>
             <p className="text-sm text-primary font-bold uppercase tracking-wider">RuralCare</p>
@@ -298,7 +345,7 @@ export default function ConsultationPage() {
             connected ? "bg-green-100 text-green-700 border border-green-200" : "bg-orange-100 text-orange-700 border border-orange-200"
           }`}>
             <span className={`w-2 h-2 rounded-full ${connected ? "bg-green-500" : "bg-orange-500 animate-pulse"}`}></span>
-            {connected ? "Connected" : "Connecting..."}
+            {connected ? "Signaling connected" : error ? "Connection unavailable" : "Connecting..."}
           </div>
         </div>
 
@@ -307,6 +354,7 @@ export default function ConsultationPage() {
             {error}
           </div>
         )}
+        {notesSaved && <p role="status" className="mb-4 text-sm text-primary">Consultation notes saved.</p>}
 
         <div className="flex flex-col lg:flex-row gap-6 flex-1 min-h-0">
           {/* Main Video Area */}
@@ -393,7 +441,7 @@ export default function ConsultationPage() {
               <div className="p-4 border-b border-outline-variant font-bold text-on-surface flex items-center justify-between">
                 Chat
                 <span className="text-xs text-on-surface-variant font-medium">
-                  {dataChannelRef.current?.readyState === "open" ? "Connected" : "Waiting..."}
+                  {chatReady ? "Connected" : "Waiting..."}
                 </span>
               </div>
               <div ref={chatContainerRef} className="flex-1 p-4 overflow-y-auto flex flex-col gap-3">
@@ -415,15 +463,17 @@ export default function ConsultationPage() {
               <form onSubmit={sendChatMessage} className="p-3 border-t border-outline-variant bg-surface flex gap-2">
                 <input
                   type="text"
+                  aria-label="Chat message"
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
                   placeholder="Type a message..."
                   className="flex-1 bg-surface-container border-none rounded-xl px-4 py-2 text-sm focus:ring-1 focus:ring-primary outline-none text-on-surface placeholder-on-surface-variant/50 transition-all"
-                  disabled={dataChannelRef.current?.readyState !== "open"}
+                  disabled={!chatReady}
                 />
                 <button 
                   type="submit" 
-                  disabled={!chatInput.trim() || dataChannelRef.current?.readyState !== "open"}
+                  aria-label="Send message"
+                  disabled={!chatInput.trim() || !chatReady}
                   className="p-2 bg-primary rounded-xl text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/90 transition shadow-sm"
                 >
                   <Send className="w-4 h-4" />
@@ -439,6 +489,9 @@ export default function ConsultationPage() {
                 </div>
                 <div className="p-4 flex flex-col gap-3">
                   <textarea
+                    aria-label="Consultation notes"
+                    maxLength={10000}
+                    disabled={!notesLoaded}
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     placeholder="Add clinical notes here..."
@@ -446,7 +499,7 @@ export default function ConsultationPage() {
                   />
                   <button
                     onClick={saveNotes}
-                    disabled={savingNotes}
+                    disabled={savingNotes || !notesLoaded}
                     className="flex items-center justify-center gap-2 w-full py-2.5 bg-surface-container hover:bg-surface-variant text-primary font-bold rounded-xl transition text-sm disabled:opacity-50"
                   >
                     <Save className="w-4 h-4" /> {savingNotes ? "Saving..." : "Save Notes"}

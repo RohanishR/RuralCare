@@ -15,7 +15,6 @@ import {
   HeartPulse,
 } from "lucide-react";
 
-import { Modal } from "@/components/ui/Modal";
 import { Appointment, apiClient } from "@/lib/api-client";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -24,9 +23,7 @@ export default function PatientDashboard() {
 
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [symptomOpen, setSymptomOpen] = useState(false);
-  const [symptomNote, setSymptomNote] = useState("");
-  const [summary, setSummary] = useState("");
+  const [loadError, setLoadError] = useState("");
 
   useEffect(() => {
     const loadAppointments = async () => {
@@ -42,7 +39,7 @@ export default function PatientDashboard() {
           ),
         );
       } catch (error) {
-        console.error("Failed to load appointments:", error);
+        setLoadError(error instanceof Error ? error.message : "Appointments could not be loaded.");
         setAppointments([]);
       } finally {
         setLoading(false);
@@ -52,15 +49,8 @@ export default function PatientDashboard() {
     loadAppointments();
   }, []);
 
-  const nextAppointment = appointments[0];
+  const nextAppointment = [...appointments].sort((a, b) => Date.parse(a.appointment_date) - Date.parse(b.appointment_date))[0];
 
-  const createSummary = () => {
-    const trimmed = symptomNote.trim();
-    if (!trimmed) return;
-    setSummary(
-      `Symptoms noted: ${trimmed}. This is a patient-entered summary to share with your clinician; it is not a diagnosis or emergency assessment.`,
-    );
-  };
 
   const formatDate = (date: string) => {
     return new Date(date).toLocaleDateString("en-IN", {
@@ -150,7 +140,7 @@ export default function PatientDashboard() {
             </h2>
           </div>
 
-          {nextAppointment ? (
+          {loadError ? <p role="alert" className="rounded-lg bg-error-container p-4 text-sm text-on-error-container">{loadError} <Link href="/patient/appointments" className="underline">Open appointments to retry</Link></p> : nextAppointment ? (
             <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center justify-between rounded-xl bg-surface-container-low p-5 border border-outline-variant/50">
               <div className="flex items-start gap-4">
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -193,7 +183,7 @@ export default function PatientDashboard() {
                 Get the care you need by finding a verified specialist and booking a consultation time that works for you.
               </p>
               <Link
-                href="/find-doctor"
+                href="/patient/find-doctor"
                 className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 font-semibold text-white shadow-sm transition-all hover:bg-primary/90 hover:shadow-md"
               >
                 <PlusCircle className="h-5 w-5" />
@@ -211,19 +201,19 @@ export default function PatientDashboard() {
                 <Activity className="h-3.5 w-3.5" />
                 AI Assistant
               </div>
-              <h2 className="text-xl font-bold text-on-surface">Symptom Checker</h2>
+              <h2 className="text-xl font-bold text-on-surface">Symptom Assistant</h2>
               <p className="mt-3 text-sm text-on-surface-variant">
-                Describe how you're feeling in your own words. Our AI will organize your symptoms into a professional summary for your doctor.
+                Organize your symptoms for a conversation with your doctor. Assistive information only, not a diagnosis.
               </p>
             </div>
 
-            <button
-              onClick={() => setSymptomOpen(true)}
+            <Link
+              href="/patient/symptom-assistant"
               className="group flex w-full items-center justify-between rounded-xl bg-secondary px-5 py-3.5 font-semibold text-white shadow-sm transition-all hover:bg-secondary/90 hover:shadow-md"
             >
-              Start Assessment
+              Organize symptoms
               <HeartPulse className="h-5 w-5 transition-transform group-hover:scale-110" />
-            </button>
+            </Link>
           </div>
           
           <div className="absolute -bottom-10 -right-10 opacity-5">
@@ -232,55 +222,7 @@ export default function PatientDashboard() {
         </section>
       </div>
 
-      {/* Symptom modal */}
-      <Modal
-        isOpen={symptomOpen}
-        onClose={() => {
-          setSymptomOpen(false);
-          setSummary("");
-        }}
-        title="Symptom Notes"
-      >
-        <div className="space-y-5">
-          <div className="rounded-lg bg-red-50 p-4 border border-red-100 flex items-start gap-3 text-red-800">
-            <Activity className="h-5 w-5 flex-shrink-0 mt-0.5" />
-            <p className="text-sm font-medium leading-relaxed">
-              If this is a medical emergency, please call your local emergency number (e.g., 112) or seek urgent care immediately.
-            </p>
-          </div>
 
-          <div className="space-y-3">
-            <label className="block text-sm font-bold text-on-surface">
-              What would you like your doctor to know?
-            </label>
-            <textarea
-              value={symptomNote}
-              onChange={(event) => setSymptomNote(event.target.value)}
-              className="min-h-[160px] w-full rounded-xl border border-outline-variant bg-surface p-4 text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all resize-y"
-              placeholder="For example: I've had a mild fever and a persistent dry cough for the last 3 days. I also feel more tired than usual."
-            />
-          </div>
-
-          <button
-            onClick={createSummary}
-            className="w-full rounded-xl bg-primary px-4 py-3.5 font-semibold text-white transition-all hover:bg-primary/90 shadow-sm"
-          >
-            Generate Professional Summary
-          </button>
-
-          {summary && (
-            <div className="animate-in slide-in-from-bottom-4 duration-300 rounded-xl bg-primary-container/10 p-5 border border-primary-container/20">
-              <h4 className="text-sm font-bold text-primary mb-2 flex items-center gap-2">
-                <FileText className="h-4 w-4" />
-                AI Generated Summary
-              </h4>
-              <p className="text-sm text-on-surface leading-relaxed">
-                {summary}
-              </p>
-            </div>
-          )}
-        </div>
-      </Modal>
     </main>
   );
 }

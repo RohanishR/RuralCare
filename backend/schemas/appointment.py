@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 AppointmentStatus = Literal[
@@ -23,8 +23,9 @@ class AppointmentCreate(BaseModel):
 
 
 class AppointmentUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     status: Optional[AppointmentStatus] = None
-    notes: Optional[str] = None
+    notes: Optional[str] = Field(default=None, max_length=10000)
 
 
 class AppointmentResponse(BaseModel):

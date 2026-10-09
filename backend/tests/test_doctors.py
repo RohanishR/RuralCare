@@ -31,6 +31,16 @@ class AppointmentSchemaTests(unittest.TestCase):
         with self.assertRaises(ValidationError):
             AppointmentUpdate.model_validate({"appointment_date": (datetime.now(timezone.utc) + timedelta(days=1)).isoformat()})
 
+    def test_update_accepts_bounded_notes(self):
+        self.assertEqual(AppointmentUpdate(notes="Follow up").notes, "Follow up")
+        with self.assertRaises(ValidationError):
+            AppointmentUpdate(notes="x" * 10001)
+
+    def test_update_rejects_unknown_status_and_owner(self):
+        for payload in ({"status": "approved"}, {"patient_id": "other"}):
+            with self.assertRaises(ValidationError):
+                AppointmentUpdate.model_validate(payload)
+
 
 if __name__ == "__main__":
     unittest.main()
