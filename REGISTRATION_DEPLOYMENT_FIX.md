@@ -14,7 +14,7 @@ Confirmed source defects:
 - Browser code ignored NEXT_PUBLIC_API_URL, and login duplicated URL selection. Registration and login now use the same configurable client.
 - Database startup silently attempted localhost after Atlas failed; this is invalid on Vercel and could mask the actual destination locally. Removed the fallback. Database errors now produce safe 503 responses; configuration errors identify variable names without values.
 
-No Vercel runtime logs or authenticated Vercel configuration were available locally. These reproducible source defects are fixed, but the exact exception in the current deployment cannot be confirmed until the new deployment or its runtime logs can be inspected.
+The initial investigation had no authenticated Vercel access. On 10 October 2026, authenticated inspection confirmed the fix commit is deployed and the current registration flow succeeds. The historical startup exception is not established by the available current runtime logs.
 
 ## Required Vercel settings
 
@@ -68,7 +68,18 @@ To test the deployed API and verify its database record, configure the matching 
 
     python -B -m backend.tests.verify_registration_live --base-url https://ruralcare-cyan.vercel.app
 
-The live deployed registration remains unverified because the current remote deployment still returns 500 and cannot be redeployed from this workspace without authenticated Vercel access.
+### Authenticated production verification — 10 October 2026
+
+- Project ruralcare uses the Services framework. Production deployment dpl_ELNRKXMKm8avBKDsZnNtddsGUxzw is READY and runs commit 8e67e7668bc242d0d6b47b1aa0f5001d391ba8de, containing the registration fix. No further redeployment or configuration mutation was necessary.
+- FRONTEND_URL matches https://ruralcare-cyan.vercel.app exactly. NEXT_PUBLIC_API_URL points to https://ruralcare-cyan.vercel.app/api/v1. Required backend environment-variable names are present. Secret values were not printed.
+- Production POST /api/v1/auth/register returned 200. The inserted user was found in the actual configured MongoDB and its password hash verified. Production password login returned 200 and the signed JWT verified.
+- Synthetic production test account retained: ruralcare-registration-qa-3e04a1b2f018425296a73d0090a47aeb@example.com. Its random password and token were not printed or documented.
+- Empty registration input returned 422. Production CORS preflight returned 200 and allowed the exact frontend origin.
+- Runtime logs confirmed successful Atlas connection and registration_succeeded, without sensitive request data. No errors appeared in the returned log window; this does not prove historical errors never occurred.
+- Backend and frontend Google client IDs are configured and match. This does not verify Google's authorized-origin configuration or a browser popup/interactive Google sign-in.
+- Re-ran 18 backend tests and four API-client tests; all passed.
+
+If the old message persists, reproduce it on the production domain after a hard refresh and capture the failing request URL, HTTP status, and safe request reference. Email registration/password login are verified; an interactive Google popup error requires separate browser/OAuth investigation.
 
 ## Error handling
 
