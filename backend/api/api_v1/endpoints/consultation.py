@@ -1,14 +1,15 @@
 import logging
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Literal, Optional
 
 from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, model_validator
 
 from backend.api.deps import get_current_user
 from backend.core.database import get_database
+from backend.core.config import settings
 from backend.core.security import decode_access_token
 from backend.models.appointment import AppointmentModel
 from backend.models.doctor import DoctorModel
@@ -22,13 +23,26 @@ router = APIRouter()
 
 
 class SignalPayload(BaseModel):
-    type: str
+    type: Literal["offer", "answer", "ice-candidate", "start-call", "end-call", "chat"]
     offer: Optional[Dict[str, Any]] = None
     answer: Optional[Dict[str, Any]] = None
     candidate: Optional[Dict[str, Any]] = None
-    text: Optional[str] = None
+    text: Optional[str] = Field(None, max_length=4000)
     time: Optional[str] = None
     sender: Optional[str] = None
+
+    @model_validator(mode="after")
+    def validate_signal(self):
+        required = {"offer": "offer", "answer": "answer", "ice-candidate": "candidate", "chat": "text"}
+        field = required.get(self.type)
+        if field and not getattr(self, field):
+            raise ValueError("Required signal payload is missing")
+        for description, kind in ((self.offer, "offer"), (self.answer, "answer")):
+            if description and (description.get("type") != kind or
+                                not isinstance(description.get("sdp"), str) or
+                                len(description["sdp"]) > 100000):
+                raise ValueError("Invalid session description")
+        return self
 
 
 async def verify_room_access(room_id: str, user_id: str) -> dict:
@@ -69,7 +83,7 @@ async def verify_room_access(room_id: str, user_id: str) -> dict:
             raise HTTPException(status_code=403, detail="Unauthorized consultation participant")
         return {"user": user, "appointment": appointment, "role": "doctor"}
 
-    return {"user": user, "appointment": appointment, "role": user_role}
+    raise HTTPException(status_code=403, detail="Unauthorized consultation participant")
 
 
 # ==========================================
@@ -84,6 +98,12 @@ async def join_room(
     await verify_room_access(room_id, current_user.id)
     db = get_database()
     now = datetime.now(timezone.utc)
+
+    # Persistent signaling is shared by every serverless instance.
+    await db["consultation_signals"].create_index([("room_id", 1), ("created_at", 1), ("_id", 1)])
+    await db["consultation_signals"].create_index("created_at", expireAfterSeconds=300)
+    await db["consultation_presence"].create_index([("room_id", 1), ("user_id", 1)])
+    await db["consultation_presence"].create_index("last_seen", expireAfterSeconds=60)
 
     await db["consultation_presence"].update_one(
         {"room_id": room_id, "user_id": current_user.id},
@@ -102,7 +122,21 @@ async def join_room(
         "status": "joined",
         "peer_ready": other is not None,
         "other_participant": other.get("name") if other else None,
+        "joined_at": now.isoformat(),
+        "ice_servers": [{"urls": "stun:stun.l.google.com:19302"}] + (
+            [{"urls": [url.strip() for url in settings.TURN_URLS.split(",") if url.strip()],
+              "username": settings.TURN_USERNAME, "credential": settings.TURN_CREDENTIAL}]
+            if settings.TURN_URLS and settings.TURN_USERNAME and settings.TURN_CREDENTIAL else []
+        ),
+        "relay_configured": bool(settings.TURN_URLS and settings.TURN_USERNAME and settings.TURN_CREDENTIAL),
     }
+
+
+@router.post("/api/v1/consultation/{room_id}/leave")
+async def leave_room(room_id: str, current_user: UserResponse = Depends(get_current_user)):
+    await verify_room_access(room_id, current_user.id)
+    await get_database()["consultation_presence"].delete_many({"room_id": room_id, "user_id": current_user.id})
+    return {"status": "left"}
 
 
 @router.post("/api/v1/consultation/{room_id}/heartbeat")
@@ -158,6 +192,7 @@ async def post_signal(
 async def get_signals(
     room_id: str,
     after_id: Optional[str] = Query(None),
+    since: Optional[datetime] = Query(None),
     current_user: UserResponse = Depends(get_current_user),
 ):
     await verify_room_access(room_id, current_user.id)
@@ -166,13 +201,16 @@ async def get_signals(
     query: Dict[str, Any] = {
         "room_id": room_id,
         "sender_id": {"$ne": current_user.id},
+        "created_at": {"$gte": max(datetime.now(timezone.utc) - timedelta(seconds=300),
+                                      since.replace(tzinfo=timezone.utc) if since and not since.tzinfo
+                                      else since or datetime.min.replace(tzinfo=timezone.utc))},
     }
 
     if after_id:
         try:
             query["_id"] = {"$gt": ObjectId(after_id)}
         except Exception:
-            pass
+            raise HTTPException(status_code=400, detail="Invalid signal cursor") from None
 
     cursor = db["consultation_signals"].find(query).sort("_id", 1).limit(50)
     docs = await cursor.to_list(length=50)
@@ -267,8 +305,8 @@ async def consultation_websocket(
         user_id = claims["sub"]
         await verify_room_access(room_id, user_id)
     except Exception as e:
-        logger.warning(f"WebSocket auth failed for room {room_id}: {e}")
-        await websocket.send_json({"error": f"Unauthorized consultation room: {e}"})
+        logger.warning("consultation_auth_failed error_type=%s", type(e).__name__)
+        await websocket.send_json({"error": "Unauthorized consultation room"})
         await websocket.close(code=1008, reason="Unauthorized consultation room")
         return
 

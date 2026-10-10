@@ -1,23 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import Cookies from "js-cookie";
+import { ConsultationCall } from "@/lib/consultation-call";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiClient, type Appointment } from "@/lib/api-client";
-import { Mic, MicOff, Video, VideoOff, PhoneOff, Send, Save, ArrowLeft, RefreshCw, Users } from "lucide-react";
-
-type SignalMessage = {
-  type: string;
-  error?: string;
-  offer?: RTCSessionDescriptionInit;
-  answer?: RTCSessionDescriptionInit;
-  candidate?: RTCIceCandidateInit;
-  text?: string;
-  time?: string;
-  sender?: string;
-};
+import { Mic, MicOff, Video, VideoOff, PhoneOff, Send, Save, ArrowLeft, RefreshCw } from "lucide-react";
 
 type ChatMessage = {
   sender: string;
@@ -30,17 +19,17 @@ export default function ConsultationPage() {
   const router = useRouter();
   const { user } = useAuth();
   const isDoctor = user?.role === "doctor";
+  const userId = user?.id;
 
   const appointmentId = params.appointmentId as string;
 
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
   const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
 
-  const socketRef = useRef<WebSocket | null>(null);
-  const peerRef = useRef<RTCPeerConnection | null>(null);
-  const localStreamRef = useRef<MediaStream | null>(null);
-  const dataChannelRef = useRef<RTCDataChannel | null>(null);
-  const pendingCandidatesRef = useRef<RTCIceCandidateInit[]>([]);
+  const callRef = useRef<ConsultationCall | null>(null);
+  const [connectingCall, setConnectingCall] = useState(false);
+  const [relayConfigured, setRelayConfigured] = useState<boolean | null>(null);
+  const [sendingChat, setSendingChat] = useState(false);
 
   const [connected, setConnected] = useState(false);
   const [peerReady, setPeerReady] = useState(false);
@@ -49,22 +38,15 @@ export default function ConsultationPage() {
   const [muted, setMuted] = useState(false);
   const [cameraOff, setCameraOff] = useState(false);
   const [error, setError] = useState("");
-  const [connectionMode, setConnectionMode] = useState<"connecting" | "websocket" | "http">("connecting");
 
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState("");
-  const [chatReady, setChatReady] = useState(false);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   const [notes, setNotes] = useState("");
   const [savingNotes, setSavingNotes] = useState(false);
   const [notesSaved, setNotesSaved] = useState(false);
   const [notesLoaded, setNotesLoaded] = useState(false);
-
-  // REST polling state refs
-  const isRestPollingRef = useRef(false);
-  const lastSignalIdRef = useRef<string | null>(null);
-  const processedSignalIdsRef = useRef<Set<string>>(new Set());
 
   // 1. Fetch notes if doctor
   useEffect(() => {
@@ -93,384 +75,60 @@ export default function ConsultationPage() {
     }
   }, [chatMessages]);
 
-  // 3. Send Signal (hybrid: WebSocket or REST)
-  const sendSignal = useCallback(
-    async (message: SignalMessage) => {
-      const socket = socketRef.current;
-      if (socket && socket.readyState === WebSocket.OPEN) {
-        socket.send(JSON.stringify(message));
-      } else if (appointmentId) {
-        // Fallback to REST signaling
-        try {
-          await apiClient.post(`/consultation/${appointmentId}/signal`, message);
-        } catch (err) {
-          console.error("Failed to send REST signal:", err);
+  useEffect(() => {
+    if (!appointmentId || !userId) return;
+    const call = new ConsultationCall(appointmentId, isDoctor, {
+      localStream: (stream) => { if (localVideoRef.current) localVideoRef.current.srcObject = stream; },
+      remoteStream: (stream) => {
+        if (remoteVideoRef.current) {
+          remoteVideoRef.current.srcObject = stream;
+          void remoteVideoRef.current.play().catch(() => {
+            setError("Your browser paused remote audio. Use the video play control to hear your partner.");
+          });
         }
-      }
-    },
-    [appointmentId]
-  );
-
-  const setupDataChannel = useCallback((channel: RTCDataChannel) => {
-    dataChannelRef.current = channel;
-    channel.onmessage = (event) => {
-      try {
-        const msg = JSON.parse(event.data);
-        setChatMessages((prev) => [...prev, { sender: "Remote", text: msg.text, time: msg.time }]);
-      } catch (err) {
-        console.error("Error parsing chat data:", err);
-      }
-    };
-    channel.onopen = () => setChatReady(true);
-    channel.onclose = () => setChatReady(false);
-  }, []);
-
-  const createPeerConnection = useCallback(() => {
-    if (peerRef.current) {
-      return peerRef.current;
-    }
-
-    const peer = new RTCPeerConnection({
-      iceServers: [
-        { urls: "stun:stun.l.google.com:19302" },
-        { urls: "stun:stun1.l.google.com:19302" },
-        { urls: "stun:stun2.l.google.com:19302" },
-        { urls: "stun:stun3.l.google.com:19302" },
-        { urls: "stun:stun4.l.google.com:19302" },
-      ],
+      },
+      room: (ready, name) => { setPeerReady(ready); if (name) setOtherParticipantName(name); },
+      state: (state) => {
+        setConnected(state !== "joining" && state !== "ended");
+        setCallStarted(state === "connected");
+        setConnectingCall(state === "connecting");
+      },
+      error: setError,
+      relay: setRelayConfigured,
+      chat: (text, time) => setChatMessages(prev => [...prev, { sender: "Remote", text, time }]),
     });
+    callRef.current = call;
+    // Defer initialization until React's effect subscription is installed.
+    void Promise.resolve().then(() => call.join());
+    return () => { call.dispose(); callRef.current = null; };
+  }, [appointmentId, isDoctor, userId]);
 
-    peer.onicecandidate = (event) => {
-      if (event.candidate) {
-        sendSignal({ type: "ice-candidate", candidate: event.candidate.toJSON() });
-      }
-    };
-
-    peer.ontrack = (event) => {
-      const [remoteStream] = event.streams;
-      if (remoteVideoRef.current && remoteStream) {
-        remoteVideoRef.current.srcObject = remoteStream;
-        setCallStarted(true);
-      }
-    };
-
-    peer.ondatachannel = (event) => {
-      setupDataChannel(event.channel);
-    };
-
-    peer.onconnectionstatechange = () => {
-      if (peer.connectionState === "connected") {
-        setCallStarted(true);
-        setError("");
-      } else if (peer.connectionState === "failed") {
-        setError("Direct peer connection failed. Reconnecting...");
-      }
-    };
-
-    peerRef.current = peer;
-    return peer;
-  }, [sendSignal, setupDataChannel]);
-
-  const startLocalMedia = useCallback(async () => {
-    if (localStreamRef.current) {
-      return localStreamRef.current;
-    }
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: true,
-      });
-
-      localStreamRef.current = stream;
-
-      if (localVideoRef.current) {
-        localVideoRef.current.srcObject = stream;
-      }
-
-      const peer = createPeerConnection();
-      stream.getTracks().forEach((track) => {
-        // Prevent adding tracks multiple times
-        const senders = peer.getSenders();
-        const alreadyAdded = senders.some((s) => s.track === track);
-        if (!alreadyAdded) {
-          peer.addTrack(track, stream);
-        }
-      });
-
-      return stream;
-    } catch (err) {
-      console.warn("Camera/microphone access issue:", err);
-      setError("Please allow camera and microphone access to use video consultation.");
-      return null;
-    }
-  }, [createPeerConnection]);
-
-  // Auto-start camera preview on mount so user sees their own feed immediately
-  useEffect(() => {
-    startLocalMedia();
-  }, [startLocalMedia]);
-
-  const flushPendingCandidates = useCallback(async (peer: RTCPeerConnection) => {
-    for (const candidate of pendingCandidatesRef.current.splice(0)) {
-      try {
-        await peer.addIceCandidate(new RTCIceCandidate(candidate));
-      } catch (err) {
-        console.error("Error flushing pending ICE candidate:", err);
-      }
-    }
-  }, []);
-
-  const beginOffer = useCallback(async () => {
-    setError("");
-    const stream = await startLocalMedia();
-    if (!stream) return;
-    const peer = createPeerConnection();
-    const dc = peer.createDataChannel("chat");
-    setupDataChannel(dc);
-    const offer = await peer.createOffer();
-    await peer.setLocalDescription(offer);
-    sendSignal({ type: "offer", offer });
-  }, [createPeerConnection, sendSignal, setupDataChannel, startLocalMedia]);
-
-  // Dispatch incoming signal message
-  const handleIncomingSignal = useCallback(
-    async (message: SignalMessage) => {
-      if (message.error) {
-        setError(message.error);
-        return;
-      }
-
-      if (message.type === "peer-ready") {
-        setPeerReady(true);
-        return;
-      }
-
-      const peer = createPeerConnection();
-
-      if (message.type === "offer" && message.offer) {
-        await peer.setRemoteDescription(new RTCSessionDescription(message.offer));
-        await flushPendingCandidates(peer);
-        const stream = await startLocalMedia();
-        if (!stream) return;
-        const answer = await peer.createAnswer();
-        await peer.setLocalDescription(answer);
-        sendSignal({ type: "answer", answer });
-        setCallStarted(true);
-      }
-
-      if (message.type === "answer" && message.answer) {
-        await peer.setRemoteDescription(new RTCSessionDescription(message.answer));
-        await flushPendingCandidates(peer);
-        setCallStarted(true);
-      }
-
-      if (message.type === "ice-candidate" && message.candidate) {
-        try {
-          if (peer.remoteDescription) {
-            await peer.addIceCandidate(new RTCIceCandidate(message.candidate));
-          } else {
-            pendingCandidatesRef.current.push(message.candidate);
-          }
-        } catch (err) {
-          console.error("ICE candidate error:", err);
-        }
-      }
-    },
-    [createPeerConnection, flushPendingCandidates, sendSignal, startLocalMedia]
-  );
-
-  // 4. Room Connection & Hybrid Signaling
-  useEffect(() => {
-    if (!appointmentId) return;
-
-    let isSubscribed = true;
-    let pollInterval: NodeJS.Timeout | null = null;
-
-    const token = Cookies.get("access_token");
-    if (!token) {
-      setError("Please sign in before joining a consultation.");
-      return;
-    }
-
-    // Step A: Join via REST to guarantee access & presence
-    apiClient
-      .post<{ status: string; peer_ready: boolean; other_participant?: string }>(
-        `/consultation/${appointmentId}/join`
-      )
-      .then((res) => {
-        if (!isSubscribed) return;
-        setConnected(true);
-        if (res.peer_ready) setPeerReady(true);
-        if (res.other_participant) setOtherParticipantName(res.other_participant);
-      })
-      .catch((err) => {
-        if (isSubscribed) {
-          console.warn("REST join warning:", err);
-        }
-      });
-
-    // Step B: Connect via WebSocket (or fallback to REST polling)
-    const startRestPolling = () => {
-      if (isRestPollingRef.current) return;
-      isRestPollingRef.current = true;
-      setConnectionMode("http");
-      setConnected(true);
-
-      pollInterval = setInterval(async () => {
-        if (!isSubscribed) return;
-
-        // 1. Heartbeat
-        try {
-          const hb = await apiClient.post<{ peer_ready: boolean }>(
-            `/consultation/${appointmentId}/heartbeat`
-          );
-          if (hb.peer_ready) setPeerReady(true);
-        } catch {
-          // ignore transient poll error
-        }
-
-        // 2. Poll signals
-        try {
-          const query = lastSignalIdRef.current ? `?after_id=${lastSignalIdRef.current}` : "";
-          const data = await apiClient.get<{
-            signals: Array<{ id: string; payload: SignalMessage }>;
-            last_id: string;
-          }>(`/consultation/${appointmentId}/signals${query}`);
-
-          if (data?.signals && data.signals.length > 0) {
-            for (const item of data.signals) {
-              if (!processedSignalIdsRef.current.has(item.id)) {
-                processedSignalIdsRef.current.add(item.id);
-                lastSignalIdRef.current = item.id;
-                await handleIncomingSignal(item.payload);
-              }
-            }
-          }
-        } catch {
-          // ignore transient signal poll error
-        }
-      }, 1200);
-    };
-
-    // Calculate WebSocket endpoint URL
-    const getWsUrl = () => {
-      const isLocal =
-        typeof window !== "undefined" &&
-        (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
-
-      const base = isLocal ? "http://localhost:8000" : window.location.origin;
-      const url = new URL(base);
-      url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
-      url.pathname = `/ws/${encodeURIComponent(appointmentId)}`;
-      url.searchParams.set("token", token);
-      return url.toString();
-    };
-
-    try {
-      const wsUrl = getWsUrl();
-      const socket = new WebSocket(wsUrl);
-      socketRef.current = socket;
-
-      socket.onopen = () => {
-        if (!isSubscribed) return;
-        setConnected(true);
-        setConnectionMode("websocket");
-        setError("");
-      };
-
-      socket.onmessage = async (event) => {
-        if (!isSubscribed) return;
-        try {
-          const message: SignalMessage = JSON.parse(event.data);
-          await handleIncomingSignal(message);
-        } catch (err) {
-          console.error("Error parsing WS message:", err);
-        }
-      };
-
-      socket.onerror = () => {
-        console.info("WebSocket unavailable, switching to HTTP REST signaling...");
-        startRestPolling();
-      };
-
-      socket.onclose = () => {
-        if (!isSubscribed) return;
-        startRestPolling();
-      };
-    } catch {
-      startRestPolling();
-    }
-
-    return () => {
-      isSubscribed = false;
-      if (pollInterval) clearInterval(pollInterval);
-      if (socketRef.current) {
-        socketRef.current.onclose = null;
-        socketRef.current.onmessage = null;
-        socketRef.current.onerror = null;
-        socketRef.current.close();
-      }
-      peerRef.current?.close();
-      localStreamRef.current?.getTracks().forEach((track) => track.stop());
-      peerRef.current = null;
-      localStreamRef.current = null;
-      socketRef.current = null;
-      dataChannelRef.current = null;
-      pendingCandidatesRef.current = [];
-    };
-  }, [appointmentId, handleIncomingSignal]);
-
-  const startCall = async () => {
-    try {
-      await beginOffer();
-    } catch {
-      setError("Unable to start call. Check camera permissions and try again.");
-    }
-  };
-
+  const startCall = () => { void callRef.current?.start(); };
   const toggleMute = () => {
-    const stream = localStreamRef.current;
-    if (!stream) return;
-    const audioTrack = stream.getAudioTracks()[0];
-    if (audioTrack) {
-      audioTrack.enabled = !audioTrack.enabled;
-      setMuted(!audioTrack.enabled);
-    }
+    callRef.current?.mute(!muted);
+    setMuted(!muted);
   };
-
   const toggleCamera = () => {
-    const stream = localStreamRef.current;
-    if (!stream) return;
-    const videoTrack = stream.getVideoTracks()[0];
-    if (videoTrack) {
-      videoTrack.enabled = !videoTrack.enabled;
-      setCameraOff(!videoTrack.enabled);
-    }
+    callRef.current?.camera(!cameraOff);
+    setCameraOff(!cameraOff);
   };
-
-  const endCall = () => {
-    peerRef.current?.close();
-    localStreamRef.current?.getTracks().forEach((track) => track.stop());
-    socketRef.current?.close();
-    router.back();
+  const endCall = async () => {
+    try { await callRef.current?.end(); }
+    catch { /* Local media is stopped even when signaling is unavailable. */ }
+    router.push(isDoctor ? "/doctor/dashboard" : "/patient/dashboard");
   };
-
-  const sendChatMessage = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!chatInput.trim()) return;
-
+  const sendChatMessage = async (event: React.FormEvent) => {
+    event.preventDefault();
+    const text = chatInput.trim();
+    if (!text || !connected || sendingChat) return;
+    setSendingChat(true);
     const time = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    const msg = { text: chatInput, time };
-
-    if (dataChannelRef.current?.readyState === "open") {
-      dataChannelRef.current.send(JSON.stringify(msg));
-    } else {
-      sendSignal({ type: "chat", text: chatInput, time, sender: user?.name || "Participant" });
-    }
-
-    setChatMessages((prev) => [...prev, { sender: "You", text: chatInput, time }]);
-    setChatInput("");
+    try {
+      await callRef.current?.chat(text, time);
+      setChatMessages(prev => [...prev, { sender: "You", text, time }]);
+      setChatInput("");
+    } catch { setError("Your message was not sent. Please retry."); }
+    finally { setSendingChat(false); }
   };
 
   const saveNotes = async () => {
@@ -533,8 +191,13 @@ export default function ConsultationPage() {
           </div>
         </div>
 
+        {relayConfigured === false && (
+          <p role="status" className="mb-4 text-sm text-on-surface-variant">
+            Network relay is not configured. Calls may fail on mobile data or restricted networks; contact the service administrator if video cannot connect.
+          </p>
+        )}
         {error && (
-          <div className="mb-5 rounded-xl border border-error bg-error-container p-4 text-sm text-on-error-container flex items-center justify-between">
+          <div role="alert" className="mb-5 rounded-xl border border-error bg-error-container p-4 text-sm text-on-error-container flex items-center justify-between">
             <span>{error}</span>
             <button
               onClick={() => setError("")}
@@ -557,6 +220,7 @@ export default function ConsultationPage() {
                 ref={remoteVideoRef}
                 autoPlay
                 playsInline
+                controls
                 className={`h-full w-full object-cover transition-opacity duration-300 ${
                   !callStarted ? "opacity-0" : "opacity-100"
                 }`}
@@ -608,10 +272,11 @@ export default function ConsultationPage() {
               {!callStarted ? (
                 <button
                   onClick={startCall}
-                  className="rounded-xl bg-primary px-8 py-3.5 text-sm font-semibold text-white transition hover:bg-primary/90 flex items-center gap-2 shadow-md hover:shadow-lg active:scale-95"
+                  disabled={!connected || !peerReady || connectingCall}
+                  className="rounded-xl bg-primary px-8 py-3.5 text-sm font-semibold text-white transition hover:bg-primary/90 disabled:opacity-50 flex items-center gap-2 shadow-md hover:shadow-lg active:scale-95"
                 >
                   <Video className="w-5 h-5" />
-                  {peerReady ? "Start Consultation" : "Start Consultation (Ready)"}
+                  {connectingCall ? "Connecting video..." : peerReady ? "Start Consultation" : "Waiting for participant"}
                 </button>
               ) : (
                 <>
@@ -658,7 +323,7 @@ export default function ConsultationPage() {
               <div className="p-4 border-b border-outline-variant font-bold text-on-surface flex items-center justify-between">
                 <span>In-Call Chat</span>
                 <span className="text-xs text-on-surface-variant font-medium">
-                  {chatReady ? "P2P Active" : "Online"}
+                  {connected ? "Online" : "Offline"}
                 </span>
               </div>
               <div
@@ -697,11 +362,14 @@ export default function ConsultationPage() {
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
                   placeholder="Type a message..."
+                  aria-label="Message your consultation partner"
+                  maxLength={4000}
                   className="flex-1 rounded-xl bg-surface border border-outline-variant px-3 py-2 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/50"
                 />
                 <button
                   type="submit"
-                  disabled={!chatInput.trim()}
+                  disabled={!chatInput.trim() || !connected || sendingChat}
+                  aria-label="Send message"
                   className="rounded-xl bg-primary px-3 py-2 text-white hover:bg-primary/90 disabled:opacity-40"
                 >
                   <Send className="w-4 h-4" />

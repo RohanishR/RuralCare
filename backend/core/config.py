@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_ID: str = ""
     GOOGLE_CLIENT_SECRET: str = ""
     TRANSLATION_API_KEY: str = ""
+    TURN_URLS: str = ""
+    TURN_USERNAME: str = ""
+    TURN_CREDENTIAL: str = ""
 
     @model_validator(mode="after")
     def validate_deployment(self):
