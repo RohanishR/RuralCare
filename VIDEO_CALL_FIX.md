@@ -37,11 +37,21 @@ References: [MDN WebRTC protocols](https://developer.mozilla.org/en-US/docs/Web/
 ## Verification
 
 - 25 backend tests passed, including consultation authentication/ownership, schema validation, join configuration, stale-signal filtering and leave isolation.
-- Eight frontend library tests passed, including simultaneous starts, queued candidates, join failure and capture resolving after cleanup.
+- Nine frontend library tests passed, including simultaneous starts, delayed patient start requests, queued candidates, join failure and capture resolving after cleanup.
 - Next.js production build and targeted ESLint passed.
 - Two isolated Edge browser sessions used the actual Next.js page, FastAPI and MongoDB, with synthetic camera/audio (no mocked APIs). Video connected, mute/camera toggles worked, chat arrived, and remote end-call was observed.
 - Temporary synthetic test users, profiles, appointment, presence and signals were removed by exact fixture IDs. No real clinical data was modified; no credentials were printed.
 - Local same-machine testing does not establish Wi-Fi/mobile cross-network reliability. That requires the TURN setup above.
+
+### Production release verified
+
+- URL: https://ruralcare-cyan.vercel.app
+- Target: production. Framework: Services. Status: READY.
+- Commit: 5f7314166fe3642b10d83dec4a9f36e9254851d1.
+- Deployment: dpl_Zr861LvDJjDX3jnSnNaZq2MpokMX. Vercel build duration: approximately 41 seconds.
+- Repeated the full two-browser video, mute/camera, chat, and remote end-call test against this deployed Next.js frontend and FastAPI backend. All checks passed with real MongoDB and synthetic camera/audio. Exact-ID fixture cleanup passed.
+- Vercel error-level runtime log query returned no entries in its 50-minute window at verification time. This is not a continuous monitoring guarantee. Drains/monitoring configuration was not audited in this video fix.
+- Authenticated environment-name inspection confirmed no TURN variables are configured. Cross-network relay verification remains pending user-supplied provider configuration.
 
 Run tests:
 

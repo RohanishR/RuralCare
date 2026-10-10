@@ -28,7 +28,6 @@ export default function ConsultationPage() {
 
   const callRef = useRef<ConsultationCall | null>(null);
   const [connectingCall, setConnectingCall] = useState(false);
-  const [relayConfigured, setRelayConfigured] = useState<boolean | null>(null);
   const [sendingChat, setSendingChat] = useState(false);
 
   const [connected, setConnected] = useState(false);
@@ -94,7 +93,7 @@ export default function ConsultationPage() {
         setConnectingCall(state === "connecting");
       },
       error: setError,
-      relay: setRelayConfigured,
+      relay: () => {},
       chat: (text, time) => setChatMessages(prev => [...prev, { sender: "Remote", text, time }]),
     });
     callRef.current = call;
@@ -191,11 +190,6 @@ export default function ConsultationPage() {
           </div>
         </div>
 
-        {relayConfigured === false && (
-          <p role="status" className="mb-4 text-sm text-on-surface-variant">
-            Network relay is not configured. Calls may fail on mobile data or restricted networks; contact the service administrator if video cannot connect.
-          </p>
-        )}
         {error && (
           <div role="alert" className="mb-5 rounded-xl border border-error bg-error-container p-4 text-sm text-on-error-container flex items-center justify-between">
             <span>{error}</span>
@@ -214,13 +208,12 @@ export default function ConsultationPage() {
         <div className="flex flex-col lg:flex-row gap-6 flex-1 min-h-0">
           {/* Main Video Area */}
           <div className="flex-1 flex flex-col gap-4">
-            <div className="relative flex-1 bg-surface-container-lowest rounded-2xl overflow-hidden border border-outline-variant shadow-md flex items-center justify-center min-h-[380px] sm:min-h-[460px]">
+            <div className="relative flex-1 bg-surface-container-lowest rounded-2xl overflow-hidden border border-outline-variant shadow-md flex items-center justify-center min-h-[320px] max-h-[580px] h-[54vh]">
               {/* Remote Video Stream */}
               <video
                 ref={remoteVideoRef}
                 autoPlay
                 playsInline
-                controls
                 className={`h-full w-full object-cover transition-opacity duration-300 ${
                   !callStarted ? "opacity-0" : "opacity-100"
                 }`}
