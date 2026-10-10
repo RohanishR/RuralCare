@@ -35,22 +35,11 @@ async def connect_to_mongo():
         logger.info("Successfully connected to MongoDB Atlas.")
 
     except Exception as exc:
-        logger.warning(
-            "Could not connect to MongoDB Atlas (%s). "
-            "Please whitelist your IP in MongoDB Atlas Network Access. "
-            "Attempting fallback to local MongoDB...",
-            exc,
-        )
-        try:
-            db.client = AsyncIOMotorClient(
-                "mongodb://localhost:27017",
-                serverSelectionTimeoutMS=3000,
-            )
-            await db.client.admin.command("ping")
-            logger.info("Successfully connected to local MongoDB fallback.")
-        except Exception:
-            logger.error("Both Atlas and local MongoDB connection failed.")
-            raise exc
+        logger.error("database_connection_failed error_type=%s", type(exc).__name__)
+        if db.client is not None:
+            db.client.close()
+            db.client = None
+        raise
 
 
 async def close_mongo_connection():

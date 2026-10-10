@@ -1,6 +1,10 @@
 from contextlib import asynccontextmanager
+import logging
+from uuid import uuid4
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+from pymongo.errors import PyMongoError
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.api.api_v1.api import api_router
@@ -13,11 +17,10 @@ from backend.core.database import (
     connect_to_mongo,
 )
 
+logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    await connect_to_mongo()
-
     from backend.models.user import UserModel
     from backend.models.patient import PatientModel
     from backend.models.doctor import DoctorModel
@@ -26,13 +29,15 @@ async def lifespan(app: FastAPI):
     from backend.models.prescription import PrescriptionModel
     from backend.models.notification import NotificationModel
 
-    await UserModel.ensure_indexes()
-    await PatientModel.ensure_indexes()
-    await DoctorModel.ensure_indexes()
-    await AppointmentModel.ensure_indexes()
-    await MedicalRecordModel.ensure_indexes()
-    await PrescriptionModel.ensure_indexes()
-    await NotificationModel.ensure_indexes()
+    try:
+        await connect_to_mongo()
+        for model in (UserModel, PatientModel, DoctorModel, AppointmentModel,
+                      MedicalRecordModel, PrescriptionModel, NotificationModel):
+            await model.ensure_indexes()
+    except PyMongoError as exc:
+        # Allow endpoints to report safe 503 errors and retry a transient outage.
+        logger.error("database_initialization_failed error_type=%s", type(exc).__name__)
+        await close_mongo_connection()
 
     yield
 
@@ -53,7 +58,27 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["X-Request-ID"],
 )
+
+
+@app.middleware("http")
+async def request_reference(request: Request, call_next):
+    request.state.request_id = uuid4().hex
+    response = await call_next(request)
+    response.headers["X-Request-ID"] = request.state.request_id
+    return response
+
+
+@app.exception_handler(PyMongoError)
+async def database_error(request: Request, exc: PyMongoError):
+    reference = getattr(request.state, "request_id", uuid4().hex)
+    logger.error("database_request_failed request_id=%s error_type=%s",
+                 reference, type(exc).__name__)
+    return JSONResponse(status_code=503, content={
+        "detail": "The database is temporarily unavailable. Please try again shortly.",
+        "request_id": reference,
+    })
 
 
 # REST API

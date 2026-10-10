@@ -3,9 +3,9 @@
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { GoogleLogin } from "@react-oauth/google";
+import { GoogleLogin, type CredentialResponse } from "@react-oauth/google";
 import { useAuth } from "@/contexts/AuthContext";
-import { apiClient } from "@/lib/api-client";
+import { apiClient, type AuthResponse } from "@/lib/api-client";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
@@ -42,50 +42,37 @@ function RegistrationForm() {
       });
 
       // 2. Automatically log them in after successful registration
-      const formData = new URLSearchParams();
-      formData.append("username", email);
-      formData.append("password", password);
-
-      const getBaseUrl = () => {
-        if (typeof window !== "undefined") return "/api/v1";
-        return process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
-      };
-
-      const response = await fetch(
-        getBaseUrl() + "/auth/login",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: formData.toString(),
-        },
-      );
-
-      if (!response.ok) {
-        throw new Error(
-          "Registration succeeded, but login failed. Please log in manually.",
-        );
+      let data: AuthResponse;
+      try {
+        data = await apiClient.login(email, password);
+      } catch {
+        setError("Your account was created, but automatic sign-in failed. Please sign in using the link below.");
+        return;
       }
-
-      const data = await response.json();
       login(data.access_token, data.user);
       router.push(`/${data.user.role}/dashboard`);
-    } catch (err: any) {
-      setError(err.message || "An error occurred during registration");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Registration could not be completed. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleGoogleSuccess = async (credentialResponse: any) => {
+  const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
+    if (!credentialResponse.credential) {
+      setError("Google did not return a sign-in credential. Please try again.");
+      return;
+    }
     try {
       setIsLoading(true);
-      const data = await apiClient.post<any>("/auth/google", {
+      const data = await apiClient.post<AuthResponse>("/auth/google", {
         credential: credentialResponse.credential,
       });
       login(data.access_token, data.user);
       router.push(`/${data.user.role}/dashboard`);
-    } catch (err: any) {
-      setError(err.message || "Google registration failed");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Google registration failed");
+    } finally {
       setIsLoading(false);
     }
   };
@@ -115,7 +102,7 @@ function RegistrationForm() {
         </div>
 
         {error && (
-          <div className="mb-6 p-4 bg-destructive/10 text-destructive rounded-lg flex items-center gap-2">
+          <div role="alert" className="mb-6 p-4 bg-destructive/10 text-destructive rounded-lg flex items-center gap-2">
             <AlertCircle size={20} />
             <p className="text-sm">{error}</p>
           </div>
@@ -142,6 +129,7 @@ function RegistrationForm() {
             label="Password"
             type="password"
             minLength={12}
+            maxLength={128}
             autoComplete="new-password"
             placeholder="At least 12 characters"
             value={password}

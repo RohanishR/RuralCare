@@ -105,7 +105,11 @@ npm run build
 
 ## Deployment
 
-### Deploying the Frontend (Vercel)
+### Current combined Vercel deployment
+
+This repository now uses the Services configuration in vercel.json to deploy Next.js and FastAPI together. Use the repository root, select the **Services** framework, configure the backend environment variables in Vercel, and set NEXT_PUBLIC_API_URL=/api/v1. See [Registration deployment diagnosis](REGISTRATION_DEPLOYMENT_FIX.md) for the exact production origin, entry point, safe diagnostics, and tested registration procedure.
+
+### Alternative: deploying the frontend with a separately hosted backend
 1. Push your code to a GitHub repository.
 2. Go to Vercel and import your repository.
 3. Set the Framework Preset to **Next.js**.

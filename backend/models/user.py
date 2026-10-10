@@ -40,7 +40,8 @@ class UserModel:
 
         result = await db[cls.collection_name].insert_one(user_data)
 
-        return await cls.get_by_id(str(result.inserted_id))
+        user_data["_id"] = result.inserted_id
+        return user_data
 
     @classmethod
     async def update(

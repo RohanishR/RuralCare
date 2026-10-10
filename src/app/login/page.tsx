@@ -3,9 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { GoogleLogin } from "@react-oauth/google";
+import { GoogleLogin, type CredentialResponse } from "@react-oauth/google";
 import { useAuth } from "@/contexts/AuthContext";
-import { apiClient } from "@/lib/api-client";
+import { apiClient, type AuthResponse } from "@/lib/api-client";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
@@ -25,49 +25,31 @@ export default function LoginPage() {
     setError("");
 
     try {
-      const formData = new URLSearchParams();
-      formData.append("username", email);
-      formData.append("password", password);
-
-      const getBaseUrl = () => {
-        if (typeof window !== "undefined") return "/api/v1";
-        return process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
-      };
-
-      const response = await fetch(
-        getBaseUrl() + "/auth/login",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: formData.toString(),
-        },
-      );
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.detail || "Login failed");
-      }
-
-      const data = await response.json();
+      const data = await apiClient.login(email, password);
       login(data.access_token, data.user);
       router.push(`/${data.user.role}/dashboard`);
-    } catch (err: any) {
-      setError(err.message || "An error occurred during login");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "An error occurred during login");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleGoogleSuccess = async (credentialResponse: any) => {
+  const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
+    if (!credentialResponse.credential) {
+      setError("Google did not return a sign-in credential. Please try again.");
+      return;
+    }
     try {
       setIsLoading(true);
-      const data = await apiClient.post<any>("/auth/google", {
+      const data = await apiClient.post<AuthResponse>("/auth/google", {
         credential: credentialResponse.credential,
       });
       login(data.access_token, data.user);
       router.push(`/${data.user.role}/dashboard`);
-    } catch (err: any) {
-      setError(err.message || "Google login failed");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Google login failed");
+    } finally {
       setIsLoading(false);
     }
   };
@@ -139,7 +121,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-center text-sm text-muted-foreground">
-          Don't have an account?{" "}
+          Don&apos;t have an account?{" "}
           <Link
             href="/register"
             className="text-primary hover:underline font-medium"

@@ -1,23 +1,51 @@
 import Cookies from "js-cookie";
 
-const getApiUrl = () => {
-  if (typeof window !== "undefined") {
-    // Relative path for client-side fetches (relies on Vercel rewrites)
-    return "/api/v1";
-  }
+export const getApiUrl = () => {
   // Server-side fetching using Vercel internal service bindings
-  if (process.env.BACKEND_URL) {
-    return `${process.env.BACKEND_URL}/api/v1`;
+  if (typeof window === "undefined" && process.env.BACKEND_URL) {
+    return `${process.env.BACKEND_URL.replace(/\/$/, "")}/api/v1`;
   }
-  return process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+  // On Vercel, /api/v1 is routed to the backend service. Explicit URLs also work.
+  return (process.env.NEXT_PUBLIC_API_URL || "/api/v1").replace(/\/$/, "");
 };
-const API_URL = getApiUrl();
 
 export class ApiError extends Error {
-  constructor(message: string, public status: number) {
+  constructor(message: string, public status: number, public requestId?: string) {
     super(message);
     this.name = "ApiError";
   }
+}
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  name: string;
+  role: "patient" | "doctor" | "admin";
+  auth_provider: string;
+  profile_image?: string;
+}
+
+export interface AuthResponse {
+  access_token: string;
+  token_type: string;
+  user: AuthUser;
+}
+
+export function responseError(status: number, detail: unknown, requestId?: string): ApiError {
+  let message: string;
+  if (status === 404) message = "The account service could not be found. Please contact support.";
+  else if (status === 422) {
+    const errors = Array.isArray(detail) ? detail : [];
+    const fields = [...new Set(errors.flatMap(item => {
+      const field = item && typeof item === "object" && Array.isArray(item.loc) ? item.loc.at(-1) : null;
+      return typeof field === "string" && ["name", "email", "password", "role"].includes(field) ? [field] : [];
+    }))];
+    message = fields.length ? `Please check your ${fields.join(", ")}. Use a valid email and a password of 12–128 characters.` : "Please check the information entered and try again.";
+  } else if (status === 503) message = "The database or account service is temporarily unavailable. Please try again shortly.";
+  else if (status >= 500) message = "The service could not complete this request. Please try again or contact support.";
+  else message = typeof detail === "string" ? detail : `Request failed (${status}).`;
+  const reference = requestId && /^[a-zA-Z0-9_-]{1,80}$/.test(requestId) ? requestId : undefined;
+  return new ApiError(reference ? `${message} Reference: ${reference}` : message, status, reference);
 }
 
 export interface Doctor {
@@ -91,15 +119,12 @@ class ApiClient {
     };
 
     try {
-      const response = await fetch(`${API_URL}${endpoint}`, config);
+      const response = await fetch(`${getApiUrl()}${endpoint}`, config);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
         const detail: unknown = errorData?.detail;
-        const message = typeof detail === "string" ? detail :
-          Array.isArray(detail) ? detail.map((item: { msg?: string }) => item.msg || "Invalid input").join(". ") :
-          response.status >= 500 ? "The service is temporarily unavailable. Please try again." : `Request failed (${response.status}).`;
-        throw new ApiError(message, response.status);
+        throw responseError(response.status, detail, response.headers.get("X-Request-ID") || errorData?.request_id);
       }
 
       return response.status === 204 ? undefined as T : response.json();
@@ -112,6 +137,14 @@ class ApiClient {
       }
       throw error;
     }
+  }
+
+  async login(email: string, password: string): Promise<AuthResponse> {
+    return this.request<AuthResponse>("/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ username: email, password }).toString(),
+    });
   }
 
   async get<T>(endpoint: string, options?: RequestInit): Promise<T> {
