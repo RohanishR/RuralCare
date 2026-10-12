@@ -1,14 +1,27 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useAuth } from "@/contexts/AuthContext";
 import { apiClient } from "@/lib/api-client";
 import { Button } from "@/components/ui/Button";
 
+interface PatientProfileData {
+  full_name?: string | null;
+  date_of_birth?: string | null;
+  gender?: string | null;
+  phone?: string | null;
+  location?: string | null;
+  preferred_language?: string | null;
+  blood_group?: string | null;
+  allergies?: string[] | null;
+  existing_medical_conditions?: string[] | null;
+  current_medications?: string[] | null;
+  emergency_contact?: { name?: string; relationship?: string; phone?: string } | null;
+}
+
 export default function PatientProfilePage() {
-  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [loadError, setLoadError] = useState("");
   const [message, setMessage] = useState({ type: "", text: "" });
 
   const [formData, setFormData] = useState({
@@ -32,21 +45,21 @@ export default function PatientProfilePage() {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const data: any = await apiClient.get("/patients/me");
+        const data = await apiClient.get<PatientProfileData>("/patients/me");
         if (data) {
           setFormData({
             full_name: data.full_name || "",
-            date_of_birth: data.date_of_birth || "",
+            date_of_birth: data.date_of_birth?.slice(0, 10) || "",
             gender: data.gender || "",
             phone: data.phone || "",
             location: data.location || "",
             preferred_language: data.preferred_language || "English",
             blood_group: data.blood_group || "",
-            allergies: data.allergies ? data.allergies.join(", ") : "",
-            existing_medical_conditions: data.existing_medical_conditions
+            allergies: Array.isArray(data.allergies) ? data.allergies.join(", ") : "",
+            existing_medical_conditions: Array.isArray(data.existing_medical_conditions)
               ? data.existing_medical_conditions.join(", ")
               : "",
-            current_medications: data.current_medications
+            current_medications: Array.isArray(data.current_medications)
               ? data.current_medications.join(", ")
               : "",
             emergency_contact: {
@@ -56,10 +69,8 @@ export default function PatientProfilePage() {
             },
           });
         }
-      } catch (error: any) {
-        if (error.message && !error.message.includes("404")) {
-          console.error("Failed to load profile", error);
-        }
+      } catch (error: unknown) {
+        setLoadError(error instanceof Error ? error.message : "Unable to load your profile. Please retry.");
       } finally {
         setLoading(false);
       }
@@ -89,12 +100,19 @@ export default function PatientProfilePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (saving || loadError) return;
     setSaving(true);
     setMessage({ type: "", text: "" });
 
     try {
       const payload = {
         ...formData,
+        full_name: formData.full_name.trim(),
+        date_of_birth: formData.date_of_birth || null,
+        gender: formData.gender || null,
+        blood_group: formData.blood_group || null,
+        emergency_contact: Object.values(formData.emergency_contact).some(value => value.trim())
+          ? formData.emergency_contact : null,
         allergies: formData.allergies
           ? formData.allergies
               .split(",")
@@ -115,12 +133,12 @@ export default function PatientProfilePage() {
           : [],
       };
 
-      await apiClient.put("/patients/me", payload);
+      await apiClient.put<PatientProfileData>("/patients/me", payload);
       setMessage({ type: "success", text: "Profile updated successfully!" });
-    } catch (error: any) {
+    } catch (error: unknown) {
       setMessage({
         type: "error",
-        text: error.message || "Failed to update profile.",
+        text: error instanceof Error ? error.message : "Failed to update profile.",
       });
     } finally {
       setSaving(false);
@@ -135,6 +153,13 @@ export default function PatientProfilePage() {
     );
   }
 
+  if (loadError) return (
+    <main className="mx-auto max-w-4xl p-6">
+      <p role="alert" className="mb-4 rounded-lg bg-error-container p-4 text-on-error-container">{loadError} Your existing profile has not been changed.</p>
+      <Button type="button" onClick={() => window.location.reload()}>Retry loading profile</Button>
+    </main>
+  );
+
   return (
     <main className="grow py-8 sm:py-12 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto w-full">
       <div className="bg-surface-container-lowest rounded-xl p-6 sm:p-10 shadow-sm border border-outline-variant">
@@ -148,15 +173,8 @@ export default function PatientProfilePage() {
           </p>
         </div>
 
-        {message.text && (
-          <div
-            className={`p-4 mb-6 rounded-lg ${message.type === "success" ? "bg-tertiary-fixed text-on-tertiary-fixed-variant" : "bg-error-container text-on-error-container"}`}
-          >
-            {message.text}
-          </div>
-        )}
-
         <form onSubmit={handleSubmit} className="space-y-8">
+          <fieldset disabled={saving} className="contents">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Basic Info */}
             <div className="col-span-1 md:col-span-2 text-title-lg font-title-lg text-on-surface border-b border-outline-variant pb-2 mt-4">
@@ -176,6 +194,9 @@ export default function PatientProfilePage() {
                 <input
                   type="text"
                   name="full_name"
+                  aria-label="Full Name"
+                  required
+                  maxLength={100}
                   value={formData.full_name}
                   onChange={handleChange}
                   className="w-full h-12 pl-11 pr-4 rounded-lg bg-surface-container-lowest border border-outline-variant focus:border-primary focus:ring-0"
@@ -197,6 +218,8 @@ export default function PatientProfilePage() {
                 <input
                   type="tel"
                   name="phone"
+                  aria-label="Phone Number"
+                  maxLength={20}
                   value={formData.phone}
                   onChange={handleChange}
                   className="w-full h-12 pl-11 pr-4 rounded-lg bg-surface-container-lowest border border-outline-variant focus:border-primary focus:ring-0"
@@ -218,6 +241,7 @@ export default function PatientProfilePage() {
                 <input
                   type="date"
                   name="date_of_birth"
+                  aria-label="Date of Birth"
                   value={formData.date_of_birth}
                   onChange={handleChange}
                   className="w-full h-12 pl-11 pr-4 rounded-lg bg-surface-container-lowest border border-outline-variant focus:border-primary focus:ring-0"
@@ -231,6 +255,7 @@ export default function PatientProfilePage() {
               </label>
               <select
                 name="gender"
+                aria-label="Gender"
                 value={formData.gender}
                 onChange={handleChange}
                 className="w-full h-12 px-4 rounded-lg bg-surface-container-lowest border border-outline-variant focus:border-primary focus:ring-0"
@@ -255,6 +280,7 @@ export default function PatientProfilePage() {
                 <input
                   type="text"
                   name="location"
+                  aria-label="Location / District"
                   value={formData.location}
                   onChange={handleChange}
                   className="w-full h-12 pl-11 pr-4 rounded-lg bg-surface-container-lowest border border-outline-variant focus:border-primary focus:ring-0"
@@ -269,6 +295,7 @@ export default function PatientProfilePage() {
               </label>
               <select
                 name="preferred_language"
+                aria-label="Preferred Language"
                 value={formData.preferred_language}
                 onChange={handleChange}
                 className="w-full h-12 px-4 rounded-lg bg-surface-container-lowest border border-outline-variant focus:border-primary focus:ring-0"
@@ -283,7 +310,7 @@ export default function PatientProfilePage() {
             </div>
 
             {/* Health Info */}
-            <div className="col-span-1 md:col-span-2 text-title-lg font-title-lg text-on-surface border-b border-outline-variant pb-2 mt-6">
+            <div id="health-information" className="col-span-1 md:col-span-2 text-title-lg font-title-lg text-on-surface border-b border-outline-variant pb-2 mt-6">
               Health Information
             </div>
 
@@ -293,6 +320,7 @@ export default function PatientProfilePage() {
               </label>
               <select
                 name="blood_group"
+                aria-label="Blood Group"
                 value={formData.blood_group}
                 onChange={handleChange}
                 className="w-full h-12 px-4 rounded-lg bg-surface-container-lowest border border-outline-variant focus:border-primary focus:ring-0"
@@ -316,6 +344,7 @@ export default function PatientProfilePage() {
               <input
                 type="text"
                 name="allergies"
+                aria-label="Allergies"
                 value={formData.allergies}
                 onChange={handleChange}
                 className="w-full h-12 px-4 rounded-lg bg-surface-container-lowest border border-outline-variant focus:border-primary focus:ring-0"
@@ -330,6 +359,7 @@ export default function PatientProfilePage() {
               <input
                 type="text"
                 name="existing_medical_conditions"
+                aria-label="Existing Medical Conditions"
                 value={formData.existing_medical_conditions}
                 onChange={handleChange}
                 className="w-full h-12 px-4 rounded-lg bg-surface-container-lowest border border-outline-variant focus:border-primary focus:ring-0"
@@ -344,6 +374,7 @@ export default function PatientProfilePage() {
               <input
                 type="text"
                 name="current_medications"
+                aria-label="Current Medications"
                 value={formData.current_medications}
                 onChange={handleChange}
                 className="w-full h-12 px-4 rounded-lg bg-surface-container-lowest border border-outline-variant focus:border-primary focus:ring-0"
@@ -363,6 +394,8 @@ export default function PatientProfilePage() {
               <input
                 type="text"
                 name="em_name"
+                aria-label="Emergency Contact Name"
+                maxLength={100}
                 value={formData.emergency_contact.name}
                 onChange={handleChange}
                 className="w-full h-12 px-4 rounded-lg bg-surface-container-lowest border border-outline-variant focus:border-primary focus:ring-0"
@@ -377,6 +410,8 @@ export default function PatientProfilePage() {
               <input
                 type="text"
                 name="em_relationship"
+                aria-label="Emergency Contact Relationship"
+                maxLength={50}
                 value={formData.emergency_contact.relationship}
                 onChange={handleChange}
                 className="w-full h-12 px-4 rounded-lg bg-surface-container-lowest border border-outline-variant focus:border-primary focus:ring-0"
@@ -391,6 +426,8 @@ export default function PatientProfilePage() {
               <input
                 type="tel"
                 name="em_phone"
+                aria-label="Emergency Phone"
+                maxLength={20}
                 value={formData.emergency_contact.phone}
                 onChange={handleChange}
                 className="w-full h-12 px-4 rounded-lg bg-surface-container-lowest border border-outline-variant focus:border-primary focus:ring-0"
@@ -398,8 +435,15 @@ export default function PatientProfilePage() {
               />
             </div>
           </div>
+          </fieldset>
 
           <div className="pt-6 border-t border-outline-variant">
+            {message.text && (
+              <p role={message.type === "error" ? "alert" : "status"}
+                className={`mb-4 rounded-lg p-4 ${message.type === "success" ? "bg-tertiary-fixed text-on-tertiary-fixed-variant" : "bg-error-container text-on-error-container"}`}>
+                {message.text}
+              </p>
+            )}
             <Button
               type="submit"
               isLoading={saving}

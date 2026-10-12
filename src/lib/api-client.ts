@@ -33,7 +33,7 @@ export interface AuthResponse {
 
 export function responseError(status: number, detail: unknown, requestId?: string): ApiError {
   let message: string;
-  if (status === 404) message = "The account service could not be found. Please contact support.";
+  if (status === 404) message = "The requested record or service could not be found. Please refresh or contact support.";
   else if (status === 422) {
     const errors = Array.isArray(detail) ? detail : [];
     const fields = [...new Set(errors.flatMap(item => {
@@ -41,7 +41,7 @@ export function responseError(status: number, detail: unknown, requestId?: strin
       return typeof field === "string" && ["name", "email", "password", "role"].includes(field) ? [field] : [];
     }))];
     message = fields.length ? `Please check your ${fields.join(", ")}. Use a valid email and a password of 12–128 characters.` : "Please check the information entered and try again.";
-  } else if (status === 503) message = "The database or account service is temporarily unavailable. Please try again shortly.";
+  } else if (status === 503) message = "The service is temporarily unavailable. Please try again shortly.";
   else if (status >= 500) message = "The service could not complete this request. Please try again or contact support.";
   else message = typeof detail === "string" ? detail : `Request failed (${status}).`;
   const reference = requestId && /^[a-zA-Z0-9_-]{1,80}$/.test(requestId) ? requestId : undefined;
@@ -69,6 +69,7 @@ export interface Doctor {
 
 export interface Appointment {
   id: string;
+  patient_name?: string | null;
   patient_id: string;
   doctor_id: string;
   appointment_date: string;
@@ -279,6 +280,8 @@ export interface MedicalRecord {
   diagnosis: string;
   symptoms: string;
   notes: string;
+  patient_note?: string;
+  patient_note_updated_at?: string | null;
   created_at: string;
 }
 
@@ -299,6 +302,10 @@ export async function createMedicalRecord(
   data: MedicalRecordCreate,
 ): Promise<MedicalRecord> {
   return apiClient.post("/medical-records/", data);
+}
+
+export async function updatePatientRecordCorrection(id: string, patient_note: string): Promise<MedicalRecord> {
+  return apiClient.put(`/medical-records/${encodeURIComponent(id)}/patient-note`, { patient_note });
 }
 
 

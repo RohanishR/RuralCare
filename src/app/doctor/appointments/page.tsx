@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { PrescriptionButton } from "@/components/appointments/PrescriptionButton";
+import { Badge } from "@/components/ui/Badge";
 import { useEffect, useState } from "react";
 import {
   Appointment,
@@ -31,7 +33,8 @@ export default function DoctorAppointmentsPage() {
   }
 
   useEffect(() => {
-    loadAppointments();
+    const timer = setTimeout(() => void loadAppointments(), 0);
+    return () => clearTimeout(timer);
   }, []);
 
   async function handleCancel(id: string) {
@@ -112,12 +115,12 @@ export default function DoctorAppointmentsPage() {
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
                     <h2 className="text-xl font-bold text-on-surface">
-                      Patient consultation
+                      {appointment.patient_name || "Patient name unavailable"}
                     </h2>
 
-                    <span className="rounded-full bg-tertiary-fixed px-2 py-1 text-xs font-bold text-on-tertiary-fixed-variant">
+                    <Badge variant={appointment.status === "cancelled" ? "error" : appointment.status === "pending" ? "warning" : "success"}>
                       {appointment.status}
-                    </span>
+                    </Badge>
                   </div>
 
                   <p className="mt-2 text-sm text-on-surface-variant">
@@ -131,6 +134,8 @@ export default function DoctorAppointmentsPage() {
                   )}
                 </div>
 
+                <div className="w-full space-y-3 md:w-80 md:shrink-0">
+                <PrescriptionButton appointment={appointment} />
                 {appointment.status === "confirmed" && (
                   <button
                     onClick={() =>
@@ -141,6 +146,7 @@ export default function DoctorAppointmentsPage() {
                     Cancel appointment
                   </button>
                 )}
+                </div>
               </div>
             </article>
           ))}

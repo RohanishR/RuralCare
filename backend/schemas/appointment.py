@@ -30,6 +30,7 @@ class AppointmentUpdate(BaseModel):
 
 class AppointmentResponse(BaseModel):
     id: str
+    patient_name: Optional[str] = None
     patient_id: str
     doctor_id: str
     appointment_date: datetime

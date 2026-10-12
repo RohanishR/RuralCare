@@ -1,5 +1,7 @@
 from typing import Any
 from datetime import datetime, timezone
+from bson import ObjectId
+from backend.core.database import get_database
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
@@ -16,6 +18,32 @@ from backend.schemas.user import UserResponse
 from backend.services.notification_service import NotificationService
 
 router = APIRouter()
+
+
+async def add_patient_names(appointments: list[dict]) -> list[dict]:
+    """Enrich only already-authorized appointments, projecting names rather than medical data."""
+    ids = {appointment["patient_id"] for appointment in appointments}
+    if not ids:
+        return appointments
+    db = get_database()
+    profiles = await db.patients.find(
+        {"_id": {"$in": [ObjectId(value) for value in ids if ObjectId.is_valid(value)]}},
+        {"full_name": 1, "user_id": 1},
+    ).to_list(length=len(ids))
+    profiles_by_id = {str(profile["_id"]): profile for profile in profiles}
+    user_ids = {profile.get("user_id") for profile in profiles if not (profile.get("full_name") or "").strip()}
+    # Support older appointments that reference user IDs instead of profile IDs.
+    user_ids.update(ids - profiles_by_id.keys())
+    users = await db.users.find(
+        {"_id": {"$in": [ObjectId(value) for value in user_ids if value and ObjectId.is_valid(value)]}},
+        {"name": 1},
+    ).to_list(length=max(len(user_ids), 1)) if user_ids else []
+    names = {str(user["_id"]): user.get("name", "") for user in users}
+    for appointment in appointments:
+        profile = profiles_by_id.get(appointment["patient_id"], {})
+        name = (profile.get("full_name") or "").strip() or names.get(profile.get("user_id") or appointment["patient_id"], "")
+        appointment["patient_name"] = name or None
+    return appointments
 
 
 def serialize_appointment(
@@ -182,6 +210,8 @@ async def get_doctor_appointments(
         str(doctor["_id"])
     )
 
+    await add_patient_names(appointments)
+
     return [
         serialize_appointment(appointment)
         for appointment in appointments
@@ -215,6 +245,8 @@ async def get_appointment(
     else:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
 
+    if current_user.role == "doctor":
+        await add_patient_names([appointment])
     return serialize_appointment(appointment)
 
 

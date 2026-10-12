@@ -28,6 +28,9 @@ async def main():
                 await db[collection].delete_many({"user_id": item["id"]})
             await db.users.delete_one(query)
         room_id = fixture["roomId"]
+        for collection in ("medical_records", "prescriptions"):
+            await db[collection].delete_many({"appointment_id": room_id,
+                "patient_id": fixture["users"][0]["profileId"], "doctor_id": fixture["users"][1]["profileId"]})
         await db.appointments.delete_one({"_id": ObjectId(room_id), "reason": "Synthetic video QA fixture"})
         for collection in ("consultation_presence", "consultation_signals"):
             await db[collection].delete_many({"room_id": room_id})

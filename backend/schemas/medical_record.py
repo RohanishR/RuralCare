@@ -1,7 +1,12 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
+
+
+class PatientRecordCorrection(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    patient_note: str = Field(..., max_length=2000)
 
 
 class MedicalRecordCreate(BaseModel):
@@ -20,3 +25,5 @@ class MedicalRecordResponse(BaseModel):
     symptoms: str
     notes: str
     created_at: datetime
+    patient_note: str = ""
+    patient_note_updated_at: Optional[datetime] = None

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { PrescriptionButton } from "@/components/appointments/PrescriptionButton";
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { LogOut, Calendar, Stethoscope, Clock, CheckCircle, XCircle, Award, MapPin, Building, Globe, ChevronRight, User, FileText } from "lucide-react";
@@ -55,7 +56,8 @@ export default function DoctorDashboard() {
   };
 
   useEffect(() => {
-    loadDashboard();
+    const timer = setTimeout(() => void loadDashboard(), 0);
+    return () => clearTimeout(timer);
   }, []);
 
   const updateStatus = async (
@@ -70,7 +72,7 @@ export default function DoctorDashboard() {
       setAppointments((current) =>
         current
           .map((appointment) =>
-            appointment.id === updated.id ? updated : appointment
+            appointment.id === updated.id ? { ...appointment, ...updated, patient_name: updated.patient_name ?? appointment.patient_name } : appointment
           )
           .filter(
             (app) => app.status !== "cancelled" && app.status !== "completed"
@@ -222,7 +224,7 @@ export default function DoctorDashboard() {
                      <User className="h-6 w-6" />
                    </div>
                    <div>
-                     <h3 className="text-lg font-bold text-on-surface">Patient Consultation</h3>
+                     <h3 className="text-lg font-bold text-on-surface">{nextAppointment.patient_name || "Patient name unavailable"}</h3>
                      <p className="text-sm font-medium text-on-surface-variant mt-1">
                        {new Date(nextAppointment.appointment_date).toLocaleDateString("en-IN", { weekday: 'long', month: 'long', day: 'numeric'})} at {new Date(nextAppointment.appointment_date).toLocaleTimeString("en-IN", { hour: 'numeric', minute: '2-digit'})}
                      </p>
@@ -231,6 +233,8 @@ export default function DoctorDashboard() {
                      </p>
                    </div>
                  </div>
+                 <div className="w-full space-y-3 sm:w-72 sm:shrink-0">
+                 <PrescriptionButton appointment={nextAppointment} />
                  <Link
                    href={`/consultation/${nextAppointment.id}`}
                    className="group flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-primary px-5 py-2.5 font-semibold text-white transition-all hover:bg-primary-container hover:shadow-md"
@@ -238,6 +242,7 @@ export default function DoctorDashboard() {
                    Join Room
                    <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                  </Link>
+                 </div>
                </div>
             </div>
           )}
@@ -332,7 +337,7 @@ function AppointmentCard({
            </div>
            <div>
              <h3 className="text-lg font-bold text-on-surface flex items-center gap-2">
-               Patient Request
+               {appointment.patient_name || "Patient name unavailable"}
                <Badge variant={statusVariant[appointment.status]}>{appointment.status}</Badge>
              </h3>
              <p className="mt-1 text-sm font-medium text-on-surface-variant flex items-center gap-1.5">
@@ -347,7 +352,8 @@ function AppointmentCard({
            </div>
         </div>
         
-        <div className="flex sm:flex-col justify-end gap-2 shrink-0">
+        <div className="flex flex-col justify-end gap-2 w-full sm:w-72 shrink-0">
+          <PrescriptionButton appointment={appointment} />
           {appointment.status === "pending" && (
             <>
               <button
@@ -358,7 +364,7 @@ function AppointmentCard({
               </button>
               <button
                 onClick={() => onStatusChange(appointment.id, "cancelled")}
-                className="flex items-center gap-1.5 rounded-lg border border-outline-variant bg-surface px-4 py-2 text-sm font-semibold text-on-surface transition hover:bg-surface-variant"
+                className="flex items-center gap-1.5 rounded-lg border border-red-300 bg-red-50 px-4 py-2 text-sm font-semibold text-red-800 transition hover:bg-red-100"
               >
                 <XCircle className="h-4 w-4" /> Cancel
               </button>

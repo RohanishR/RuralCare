@@ -8,10 +8,35 @@ from backend.core.database import get_database
 from backend.models.appointment import AppointmentModel
 from backend.models.doctor import DoctorModel
 from backend.models.patient import PatientModel
-from backend.schemas.medical_record import MedicalRecordCreate, MedicalRecordResponse
+from backend.schemas.medical_record import MedicalRecordCreate, MedicalRecordResponse, PatientRecordCorrection
 from backend.schemas.user import UserResponse
 
 router = APIRouter()
+
+
+@router.put("/{record_id}/patient-note", response_model=MedicalRecordResponse)
+async def update_patient_correction(record_id: str, request: PatientRecordCorrection,
+                                    current_user: UserResponse = Depends(get_current_user)):
+    if current_user.role != "patient":
+        raise HTTPException(status_code=403, detail="Only patients can edit their correction notes.")
+    if not ObjectId.is_valid(record_id):
+        raise HTTPException(status_code=400, detail="Invalid medical record ID.")
+    patient = await PatientModel.get_by_user_id(current_user.id)
+    if not patient:
+        raise HTTPException(status_code=404, detail="Medical record not found.")
+    query = {"_id": ObjectId(record_id), "patient_id": str(patient["_id"])}
+    collection = get_database().medical_records
+    now = datetime.now(timezone.utc)
+    note = request.patient_note.strip()
+    from pymongo import ReturnDocument
+    # Atomic ownership-filtered update; never alter the clinician's record.
+    document = await collection.find_one_and_update(query, {
+        "$set": {"patient_note": note, "patient_note_updated_at": now},
+        "$push": {"patient_note_history": {"note": note, "edited_at": now}},
+    }, return_document=ReturnDocument.AFTER)
+    if not document:
+        raise HTTPException(status_code=404, detail="Medical record not found.")
+    return serialize(document)
 
 
 def serialize(document: dict) -> dict:

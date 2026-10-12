@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { RecordCorrectionEditor } from "@/components/patient/RecordCorrectionEditor";
 import {
   getPatientMedicalRecords,
   MedicalRecord,
@@ -48,8 +49,9 @@ export default function MedicalRecordsPage() {
             </h1>
 
             <p className="mt-1 text-slate-600">
-              Your medical history and consultation records.
+              Your consultation records. Add correction notes without changing your doctor&apos;s clinical findings.
             </p>
+            <Link href="/patient/profile#health-information" className="mt-3 inline-flex rounded-lg bg-primary px-4 py-2 font-semibold text-white">Edit my health information</Link>
           </div>
         </div>
 
@@ -127,6 +129,7 @@ export default function MedicalRecordsPage() {
                     </p>
                   </div>
                 </div>
+                <RecordCorrectionEditor record={record} onSaved={updated => setRecords(current => current.map(item => item.id === updated.id ? updated : item))} />
               </div>
             ))}
           </div>

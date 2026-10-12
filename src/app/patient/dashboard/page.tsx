@@ -24,6 +24,18 @@ export default function PatientDashboard() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
+  const [profileName, setProfileName] = useState("");
+  const [profileError, setProfileError] = useState("");
+  const userId = user?.id;
+
+  useEffect(() => {
+    if (!userId) return;
+    let active = true;
+    apiClient.get<{ full_name?: string | null }>("/patients/me")
+      .then(profile => { if (active) setProfileName(profile.full_name || ""); })
+      .catch(() => { if (active) setProfileError("Your updated profile name could not be loaded. Open your profile to retry."); });
+    return () => { active = false; };
+  }, [userId]);
 
   useEffect(() => {
     const loadAppointments = async () => {
@@ -76,7 +88,7 @@ export default function PatientDashboard() {
           <div>
             <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">
               Good {new Date().getHours() < 12 ? "morning" : new Date().getHours() < 18 ? "afternoon" : "evening"},{" "}
-              <span className="text-primary-fixed">{user?.name?.split(" ")[0] || "Patient"}</span>
+              <span className="text-primary-fixed">{(profileName || user?.name)?.split(" ")[0] || "Patient"}</span>
             </h1>
             <p className="mt-2 text-lg text-primary-fixed-dim max-w-xl">
               Your health journey is in good hands. Manage your consultations and medical records seamlessly.
@@ -97,6 +109,7 @@ export default function PatientDashboard() {
         <div className="absolute -right-24 -top-24 h-96 w-96 rounded-full bg-white/10 blur-3xl"></div>
         <div className="absolute -bottom-24 -left-24 h-72 w-72 rounded-full bg-secondary/20 blur-3xl"></div>
       </section>
+      {profileError && <p role="alert" className="text-sm text-error">{profileError} <Link href="/patient/profile" className="underline">My profile</Link></p>}
 
       {/* Stats Grid */}
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -123,12 +136,15 @@ export default function PatientDashboard() {
         />
         <StatCard
           label="Medical Records"
-          value="Private & Secure"
+          value="View & Add Corrections"
           icon={<FileText className="h-6 w-6" />}
           href="/patient/medical-records"
           colorClass="bg-orange-50 text-orange-700"
         />
       </section>
+      <Link href="/patient/profile#health-information" className="inline-flex w-fit rounded-lg border border-primary px-4 py-2 font-semibold text-primary hover:bg-primary/10">
+        Edit my health information
+      </Link>
 
       <div className="grid gap-8 lg:grid-cols-3">
         {/* Next consultation (Takes up 2 columns) */}
