@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { PrescriptionButton } from "@/components/appointments/PrescriptionButton";
+import { MedicalRecordButton } from "@/components/appointments/MedicalRecordButton";
 import { Badge } from "@/components/ui/Badge";
 import { useEffect, useState } from "react";
 import {
@@ -135,6 +136,7 @@ export default function DoctorAppointmentsPage() {
                 </div>
 
                 <div className="w-full space-y-3 md:w-80 md:shrink-0">
+                <MedicalRecordButton appointment={appointment} />
                 <PrescriptionButton appointment={appointment} />
                 {appointment.status === "confirmed" && (
                   <button

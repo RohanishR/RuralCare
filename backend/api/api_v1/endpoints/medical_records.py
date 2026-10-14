@@ -1,7 +1,9 @@
 from datetime import datetime, timezone
+from typing import Optional
 
 from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException, status
+from pymongo import ReturnDocument
 
 from backend.api.deps import get_current_user
 from backend.core.database import get_database
@@ -59,13 +61,35 @@ async def create_medical_record(request: MedicalRecordCreate, current_user: User
     if current_user.role != "doctor":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only doctors can create medical records.")
     appointment = await get_owned_appointment(request.appointment_id, current_user)
-    document = {"patient_id": appointment["patient_id"], "doctor_id": appointment["doctor_id"], "appointment_id": request.appointment_id, "diagnosis": request.diagnosis, "symptoms": request.symptoms, "notes": request.notes or "", "created_at": datetime.now(timezone.utc)}
-    try:
-        result = await get_database().medical_records.insert_one(document)
-    except Exception as exc:
-        if "duplicate key" in str(exc).lower():
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="A medical record already exists for this appointment.") from exc
-        raise
+    db = get_database()
+    now = datetime.now(timezone.utc)
+
+    existing = await db.medical_records.find_one({"appointment_id": request.appointment_id})
+    if existing:
+        updated = await db.medical_records.find_one_and_update(
+            {"_id": existing["_id"]},
+            {"$set": {
+                "diagnosis": request.diagnosis.strip(),
+                "symptoms": request.symptoms.strip(),
+                "notes": (request.notes or "").strip(),
+                "updated_at": now,
+            }},
+            return_document=ReturnDocument.AFTER
+        )
+        return serialize(updated)
+
+    document = {
+        "patient_id": appointment["patient_id"],
+        "doctor_id": appointment["doctor_id"],
+        "appointment_id": request.appointment_id,
+        "diagnosis": request.diagnosis.strip(),
+        "symptoms": request.symptoms.strip(),
+        "notes": (request.notes or "").strip(),
+        "created_at": now,
+        "patient_note": "",
+        "patient_note_updated_at": None,
+    }
+    result = await db.medical_records.insert_one(document)
     document["id"] = str(result.inserted_id)
     return document
 
@@ -75,10 +99,30 @@ async def get_patient_medical_records(current_user: UserResponse = Depends(get_c
     if current_user.role != "patient":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only patients can access this endpoint.")
     patient = await PatientModel.get_by_user_id(current_user.id)
-    if not patient:
-        return []
-    cursor = get_database().medical_records.find({"patient_id": str(patient["_id"])}).sort("created_at", -1)
+    patient_ids = [current_user.id]
+    if patient:
+        patient_ids.append(str(patient["_id"]))
+    cursor = get_database().medical_records.find({"patient_id": {"$in": patient_ids}}).sort("created_at", -1)
     return [serialize(document) async for document in cursor]
+
+
+@router.get("/appointment/{appointment_id}", response_model=Optional[MedicalRecordResponse])
+async def get_medical_record_by_appointment(appointment_id: str, current_user: UserResponse = Depends(get_current_user)):
+    document = await get_database().medical_records.find_one({"appointment_id": appointment_id})
+    if not document:
+        return None
+    if current_user.role == "patient":
+        patient = await PatientModel.get_by_user_id(current_user.id)
+        patient_ids = [current_user.id]
+        if patient:
+            patient_ids.append(str(patient["_id"]))
+        if document["patient_id"] not in patient_ids:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
+    elif current_user.role == "doctor":
+        doctor = await DoctorModel.get_by_user_id(current_user.id)
+        if not doctor or document["doctor_id"] != str(doctor["_id"]):
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied.")
+    return serialize(document)
 
 
 @router.get("/{record_id}", response_model=MedicalRecordResponse)
@@ -90,7 +134,10 @@ async def get_medical_record(record_id: str, current_user: UserResponse = Depend
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Medical record not found.")
     if current_user.role == "patient":
         profile = await PatientModel.get_by_user_id(current_user.id)
-        allowed = profile and document["patient_id"] == str(profile["_id"])
+        patient_ids = [current_user.id]
+        if profile:
+            patient_ids.append(str(profile["_id"]))
+        allowed = document["patient_id"] in patient_ids
     elif current_user.role == "doctor":
         profile = await DoctorModel.get_by_user_id(current_user.id)
         allowed = profile and document["doctor_id"] == str(profile["_id"])

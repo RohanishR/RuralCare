@@ -33,7 +33,7 @@ export interface AuthResponse {
 
 export function responseError(status: number, detail: unknown, requestId?: string): ApiError {
   let message: string;
-  if (status === 404) message = "The requested record or service could not be found. Please refresh or contact support.";
+  if (status === 404) message = typeof detail === "string" && detail.trim() && detail !== "Not Found" ? detail : "The requested record or service could not be found. Please refresh or contact support.";
   else if (status === 422) {
     const errors = Array.isArray(detail) ? detail : [];
     const fields = [...new Set(errors.flatMap(item => {
@@ -302,6 +302,10 @@ export async function createMedicalRecord(
   data: MedicalRecordCreate,
 ): Promise<MedicalRecord> {
   return apiClient.post("/medical-records/", data);
+}
+
+export async function getAppointmentMedicalRecord(appointmentId: string): Promise<MedicalRecord | null> {
+  return apiClient.get(`/medical-records/appointment/${encodeURIComponent(appointmentId)}`);
 }
 
 export async function updatePatientRecordCorrection(id: string, patient_note: string): Promise<MedicalRecord> {

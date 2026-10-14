@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { useAuth } from "@/contexts/AuthContext";
-import { apiClient, Doctor } from "@/lib/api-client";
+import { apiClient, Doctor, ApiError } from "@/lib/api-client";
 
 type FormData = {
   full_name: string;
@@ -75,19 +75,29 @@ export default function DoctorProfilePage() {
 
       setVerificationStatus(doctor.verification_status || "pending");
     } catch (requestError: unknown) {
-      const message =
-        requestError instanceof Error
-          ? requestError.message
-          : "Unable to load your profile.";
+      const isNotFound =
+        (requestError instanceof ApiError && requestError.status === 404) ||
+        (typeof requestError === "object" &&
+          requestError !== null &&
+          "status" in requestError &&
+          (requestError as { status?: number }).status === 404) ||
+        (requestError instanceof Error &&
+          (requestError.message.includes("Doctor profile not found") ||
+            requestError.message.includes("could not be found") ||
+            requestError.message.toLowerCase().includes("not found")));
 
-      if (message.includes("Doctor profile not found")) {
+      if (isNotFound) {
         setHasProfile(false);
-
+        setError("");
         setForm((current) => ({
           ...current,
-          full_name: user?.name || current.full_name,
+          full_name: current.full_name || user?.name || "",
         }));
       } else {
+        const message =
+          requestError instanceof Error
+            ? requestError.message
+            : "Unable to load your profile.";
         setError(message);
       }
     } finally {
@@ -98,6 +108,12 @@ export default function DoctorProfilePage() {
   useEffect(() => {
     loadProfile();
   }, []);
+
+  useEffect(() => {
+    if (!hasProfile && user?.name && !form.full_name) {
+      setForm((current) => ({ ...current, full_name: user.name }));
+    }
+  }, [user?.name, hasProfile, form.full_name]);
 
   const setField = <K extends keyof FormData>(
     field: K,
@@ -149,9 +165,26 @@ export default function DoctorProfilePage() {
     };
 
     try {
-      const doctor = hasProfile
-        ? await apiClient.updateMyDoctorProfile(payload)
-        : await apiClient.post<Doctor>("/doctors/me", payload);
+      let doctor: Doctor;
+      if (hasProfile) {
+        doctor = await apiClient.updateMyDoctorProfile(payload);
+      } else {
+        try {
+          doctor = await apiClient.post<Doctor>("/doctors/me", payload);
+        } catch (postError: unknown) {
+          if (
+            (postError instanceof ApiError && postError.status === 409) ||
+            (typeof postError === "object" &&
+              postError !== null &&
+              "status" in postError &&
+              (postError as { status?: number }).status === 409)
+          ) {
+            doctor = await apiClient.updateMyDoctorProfile(payload);
+          } else {
+            throw postError;
+          }
+        }
+      }
 
       setHasProfile(true);
 

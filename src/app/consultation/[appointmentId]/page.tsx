@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { ConsultationCall } from "@/lib/consultation-call";
 import { useAuth } from "@/contexts/AuthContext";
-import { apiClient, type Appointment } from "@/lib/api-client";
+import { apiClient, createMedicalRecord, getAppointmentMedicalRecord, type Appointment } from "@/lib/api-client";
 import { Mic, MicOff, Video, VideoOff, PhoneOff, Send, Save, ArrowLeft, RefreshCw } from "lucide-react";
 
 type ChatMessage = {
@@ -42,26 +42,39 @@ export default function ConsultationPage() {
   const [chatInput, setChatInput] = useState("");
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
+  const [appointment, setAppointment] = useState<Appointment | null>(null);
+  const [diagnosis, setDiagnosis] = useState("General consultation");
   const [notes, setNotes] = useState("");
   const [savingNotes, setSavingNotes] = useState(false);
   const [notesSaved, setNotesSaved] = useState(false);
   const [notesLoaded, setNotesLoaded] = useState(false);
 
-  // 1. Fetch notes if doctor
+  // 1. Fetch notes and medical record if doctor
   useEffect(() => {
     if (!isDoctor || !appointmentId) return;
     let active = true;
     apiClient
       .get<Appointment>(`/appointments/${appointmentId}`)
-      .then((appointment) => {
+      .then((appt) => {
         if (active) {
-          setNotes(appointment.notes || "");
+          setAppointment(appt);
+          setNotes(appt.notes || "");
           setNotesLoaded(true);
         }
       })
       .catch(() => {
         if (active) setError("Existing notes could not be loaded. Refresh before editing notes.");
       });
+
+    getAppointmentMedicalRecord(appointmentId)
+      .then((record) => {
+        if (active && record) {
+          if (record.diagnosis) setDiagnosis(record.diagnosis);
+          if (record.notes) setNotes(record.notes);
+        }
+      })
+      .catch(() => {});
+
     return () => {
       active = false;
     };
@@ -112,8 +125,22 @@ export default function ConsultationPage() {
     setCameraOff(!cameraOff);
   };
   const endCall = async () => {
-    try { await callRef.current?.end(); }
-    catch { /* Local media is stopped even when signaling is unavailable. */ }
+    try {
+      await callRef.current?.end();
+      if (isDoctor && appointmentId) {
+        await apiClient.updateAppointment(appointmentId, { status: "completed", notes }).catch(() => {});
+        if (notes.trim()) {
+          await createMedicalRecord({
+            appointment_id: appointmentId,
+            diagnosis: diagnosis.trim() || "General consultation",
+            symptoms: appointment?.reason || "General health consultation",
+            notes: notes.trim(),
+          }).catch(() => {});
+        }
+      }
+    } catch {
+      /* Local media is stopped even when signaling is unavailable. */
+    }
     router.push(isDoctor ? "/doctor/dashboard" : "/patient/dashboard");
   };
   const sendChatMessage = async (event: React.FormEvent) => {
@@ -136,6 +163,12 @@ export default function ConsultationPage() {
     setNotesSaved(false);
     try {
       await apiClient.updateAppointment(appointmentId, { notes });
+      await createMedicalRecord({
+        appointment_id: appointmentId,
+        diagnosis: diagnosis.trim() || "General consultation",
+        symptoms: appointment?.reason || "General health consultation",
+        notes: notes.trim(),
+      });
       setNotesSaved(true);
     } catch (err) {
       console.error(err);
@@ -374,23 +407,40 @@ export default function ConsultationPage() {
             {isDoctor && (
               <div className="bg-surface-container-lowest rounded-2xl border border-outline-variant p-4 shadow-sm flex flex-col gap-3">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-bold text-sm text-on-surface">Doctor Notes</h3>
+                  <h3 className="font-bold text-sm text-on-surface">Clinical Notes & Record</h3>
                   <button
                     onClick={saveNotes}
                     disabled={savingNotes || !notesLoaded}
                     className="inline-flex items-center gap-1.5 text-xs font-semibold bg-primary text-white px-3 py-1.5 rounded-lg hover:bg-primary/90 disabled:opacity-50"
                   >
                     <Save className="w-3.5 h-3.5" />
-                    {savingNotes ? "Saving..." : "Save Notes"}
+                    {savingNotes ? "Saving..." : "Save Record"}
                   </button>
                 </div>
-                <textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Enter clinical notes, diagnoses, or follow-up instructions..."
-                  rows={4}
-                  className="w-full rounded-xl bg-surface border border-outline-variant p-3 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
-                />
+                {notesSaved && (
+                  <p className="text-xs text-green-700 font-medium">✓ Saved to patient medical records.</p>
+                )}
+                <div>
+                  <label className="block text-xs font-semibold text-on-surface mb-1">Diagnosis</label>
+                  <input
+                    type="text"
+                    value={diagnosis}
+                    onChange={(e) => setDiagnosis(e.target.value)}
+                    placeholder="Diagnosis (e.g. General consultation)"
+                    maxLength={500}
+                    className="w-full rounded-xl bg-surface border border-outline-variant px-3 py-2 text-xs text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-on-surface mb-1">Clinical Notes</label>
+                  <textarea
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="Enter clinical notes, diagnoses, or follow-up instructions..."
+                    rows={4}
+                    className="w-full rounded-xl bg-surface border border-outline-variant p-3 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
+                  />
+                </div>
               </div>
             )}
           </div>
