@@ -12,7 +12,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { useAuth } from "@/contexts/AuthContext";
-import { apiClient, Appointment, Doctor } from "@/lib/api-client";
+import { ApiError, apiClient, Appointment, Doctor } from "@/lib/api-client";
 
 const statusVariant = {
   pending: "warning",
@@ -33,14 +33,33 @@ export default function DoctorDashboard() {
     setError("");
 
     try {
-      const [doctorProfile, doctorAppointments] = await Promise.all([
+      const [doctorProfileResult, doctorAppointmentsResult] = await Promise.allSettled([
         apiClient.getMyDoctorProfile(),
         apiClient.getDoctorAppointments(),
       ]);
 
-      setDoctor(doctorProfile);
+      // A doctor account can reach the dashboard before creating a professional
+      // profile. The API returns 404 for that expected state; render the existing
+      // profile setup prompt instead of treating the entire dashboard as broken.
+      const profileMissing =
+        doctorProfileResult.status === "rejected" &&
+        doctorProfileResult.reason instanceof ApiError &&
+        doctorProfileResult.reason.status === 404;
+
+      if (doctorProfileResult.status === "fulfilled") {
+        setDoctor(doctorProfileResult.value);
+      } else if (profileMissing) {
+        setDoctor(null);
+      } else {
+        throw doctorProfileResult.reason;
+      }
+
+      if (doctorAppointmentsResult.status === "rejected") {
+        throw doctorAppointmentsResult.reason;
+      }
+
       setAppointments(
-        doctorAppointments.filter(
+        doctorAppointmentsResult.value.filter(
           (app) => app.status !== "cancelled" && app.status !== "completed"
         )
       );
